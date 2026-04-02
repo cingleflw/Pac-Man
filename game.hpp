@@ -96,4 +96,5 @@ class Game {
   bool running_ = false;              ///< Флаг: запущена ли игра
   SDL_Window* window_ = nullptr;      ///< Указатель на окно
   SDL_Renderer* renderer_ = nullptr;  ///< Указатель на отрисовщик
+  int currentFrame_ = 0;              ///< Номер текущего кадра анимации
 };

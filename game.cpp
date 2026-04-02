@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#include "texture_manager.hpp"
+
 // SDL требует, чтобы main имел именно такую сигнатуру (int, char**).
 int main(int argv, char** argc) {
   Game g;
@@ -37,13 +39,18 @@ bool Game::init(std::string title, int w, int h, int flags) {
   if (window_ != 0) {
     std::cout << "window created" << std::endl;
 
-    // NULL вместо имени драйвера – SDL сам выберет подходящий.
+    // NULL вместо имени драйвера - SDL сам выберет подходящий.
     renderer_ = SDL_CreateRenderer(window_, NULL);
 
     if (renderer_ != 0) {
       std::cout << "renderer created" << std::endl;
-      // Цвет заливки - красный.
-      SDL_SetRenderDrawColor(renderer_, 255, 0, 0, 255);
+      if (TextureManager::Instance().load("assets/test.png", "main_char",
+                                          renderer_)) {
+        std::cout << "main texture created" << std::endl;
+      } else {
+        std::cerr << "texture error" << std::endl;
+        return false;
+      }
     } else {
       std::cerr << "renderer error" << std::endl;
       return false;
@@ -57,14 +64,19 @@ bool Game::init(std::string title, int w, int h, int flags) {
 }
 
 void Game::render() {
-  SDL_RenderClear(renderer_);    // Очищаем всё, что было отрисовано ранее
+  // Цвет заливки - красный.
+  SDL_SetRenderDrawColor(renderer_, 255, 0, 0, 255);
+  SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее
+
+  // Рисуем текстуру персонажа: позиция (100, 100), размер 200×200
+  TextureManager::Instance().draw("main_char", 100, 100, 200, 200, renderer_);
+
   SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние
 }
 
 void Game::update() {
-  // Пока пуст - нет игровых объектов для обновления. Сюда будет добавляться
-  // логика: перемещение персонажей, проверка столкновений, обновление счёта и
-  // т.д.
+  // Циклически перебираем кадры от 0 до 5.
+  currentFrame_ = int((SDL_GetTicks() / 100) % 6);
 }
 
 void Game::handleEvents() {
@@ -89,6 +101,7 @@ void Game::handleEvents() {
 
 void Game::clean() {
   // Порядок, обратный созданию
+  std::cout << "exit" << std::endl;
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();
