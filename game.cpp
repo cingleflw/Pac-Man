@@ -15,17 +15,17 @@ int main(int argv, char** argc) {
 
   if (g.init("TEST WINDOW", 640, 480,
              SDL_WINDOW_RESIZABLE | SDL_WINDOW_MINIMIZED)) {
-    g.startGame();
+    g.start_game();
   } else {
     return 1;  // Инициализация не удалась - выход с ошибкой.
   }
 
   // Главный вечный игровой цикл. Выполняется каждый тик (кадр). Завершается,
   // когда running_ станет false.
-  while (g.isRunning()) {
-    g.handleEvents();  // Слушаем ввод.
-    g.update();        // Обновляем состояние.
-    g.render();        // Отрисовываем кадр.
+  while (g.is_running()) {
+    g.handle_events();  // Слушаем ввод.
+    g.update();         // Обновляем состояние.
+    g.render();         // Отрисовываем кадр.
   }
 
   g.clean();
@@ -44,7 +44,7 @@ bool Game::init(std::string title, int w, int h, int flags) {
 
     if (renderer_ != 0) {
       std::cout << "renderer created" << std::endl;
-      if (TextureManager::Instance().load("assets/test.png", "main_char",
+      if (TextureManager::instance().load("assets/test.png", "main_char",
                                           renderer_)) {
         std::cout << "main texture created" << std::endl;
       } else {
@@ -69,17 +69,17 @@ void Game::render() {
   SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее.
 
   // Рисуем текстуру персонажа: позиция (100, 100), размер 200*200.
-  TextureManager::Instance().draw("main_char", 100, 100, 200, 200, renderer_);
+  TextureManager::instance().draw("main_char", 100, 100, 200, 200, renderer_);
 
   SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние.
 }
 
 void Game::update() {
   // Циклически перебираем кадры от 0 до 5.
-  currentFrame_ = int((SDL_GetTicks() / 100) % 6);
+  current_frame_ = int((SDL_GetTicks() / 100) % 6);
 }
 
-void Game::handleEvents() {
+void Game::handle_events() {
   SDL_Event event;  // Структура для хранения текущего события.
 
   // SDL_PollEvent записывает событие по ссылке. Возвращает true, если в очереди
@@ -87,7 +87,7 @@ void Game::handleEvents() {
   if (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_EVENT_QUIT:
-        stopGame();  // Закрытие окна.
+        stop_game();  // Закрытие окна.
         break;
 
       case SDL_EVENT_WINDOW_RESIZED:

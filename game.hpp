@@ -7,6 +7,8 @@
  * обработки событий, обновления состояния и отрисовки кадров.
  */
 
+#pragma once
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -17,8 +19,8 @@
  *
  * Класс Game отвечает за создание окна SDL, управление отрисовщиком,
  * обработку пользовательского ввода и выполнение игрового цикла.
- * Типичный порядок использования: init() -> startGame() -> цикл
- * (handleEvents -> update -> render) -> clean().
+ * Типичный порядок использования: init() -> start_game() -> цикл
+ * (handle_events -> update -> render) -> clean().
  *
  * @note Экземпляр Game владеет окном и отрисовщиком. Метод clean()
  * должен быть вызван перед завершением программы.
@@ -65,7 +67,7 @@ class Game {
    * - SDL_EVENT_QUIT - закрытие окна.
    * - SDL_EVENT_WINDOW_RESIZED - изменение размера окна.
    */
-  void handleEvents();
+  void handle_events();
 
   /**
    * @brief Освобождает все ресурсы и завершает работу SDL.
@@ -77,16 +79,16 @@ class Game {
   void clean();
 
   /// @brief Запускает игровой цикл, устанавливая флаг running_.
-  void startGame() { running_ = true; }
+  void start_game() { running_ = true; }
 
   /// @brief Останавливает игровой цикл, сбрасывая флаг running_.
-  void stopGame() { running_ = false; }
+  void stop_game() { running_ = false; }
 
   /**
    * @brief Проверяет, выполняется ли игровой цикл.
    * @return true - игра запущена, false - игра остановлена.
    */
-  bool isRunning() { return running_; }
+  bool is_running() { return running_; }
 
  private:
   /// Флаг: запущена ли игра.
@@ -99,5 +101,5 @@ class Game {
   SDL_Renderer* renderer_ = nullptr;
 
   /// Номер текущего кадра анимации.
-  int currentFrame_ = 0;
+  int current_frame_ = 0;
 };
