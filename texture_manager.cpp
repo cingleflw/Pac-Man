@@ -1,24 +1,29 @@
+/**
+ * @file texture_manager.cpp
+ * @brief Реализация методов класса TextureManager.
+ */
+
 #include "texture_manager.hpp"
 
-#include <SDL3/SDL_rect.h>         // Для работы с прямоугольниками (SDL_FRect)
-#include <SDL3_image/SDL_image.h>  // Для загрузки изображений (IMG_Load)
+#include <SDL3/SDL_rect.h>
+#include <SDL3_image/SDL_image.h>
 
 bool TextureManager::load(std::string fileName, std::string tag,
                           SDL_Renderer* renderer) {
-  // 1. Загружаем изображение в surface (промежуточную поверхность)
-  //    c_str() конвертирует C++-строку в C-строку, как требует SDL
+  // Загружаем изображение в промежуточный surface. c_str() конвертирует
+  // C++-строку в C-строку, как требует SDL.
   SDL_Surface* tmpSurface = IMG_Load(fileName.c_str());
   if (tmpSurface == 0) {
     return false;  // Файл не найден или повреждён
   }
 
-  // 2. Создаём текстуру из surface (переносим в видеопамять)
+  // Конвертируем surface в текстуру.
   SDL_Texture* tmpTexture = SDL_CreateTextureFromSurface(renderer, tmpSurface);
 
-  // 3. Освобождаем surface - он больше не нужен, данные уже в текстуре
+  // Освобождаем surface - данные уже в текстуре.
   SDL_DestroySurface(tmpSurface);
 
-  // 4. Сохраняем текстуру в словарь по тегу
+  // Сохраняем текстуру в словарь по тегу.
   textureMap_[tag] = tmpTexture;
   return true;
 }
@@ -26,20 +31,19 @@ bool TextureManager::load(std::string fileName, std::string tag,
 void TextureManager::draw(std::string tag, float x, float y, float width,
                           float height, SDL_Renderer* renderer,
                           SDL_FlipMode flip) {
-  SDL_FRect srcRect;  // Исходный прямоугольник (какую часть текстуры берём)
-  SDL_FRect dstRect;  // Целевой прямоугольник (куда и какого размера рисуем)
+  SDL_FRect srcRect;
+  SDL_FRect dstRect;
 
-  // Берём текстуру целиком - начало в точке (0, 0)
+  // Берём текстуру целиком - начало в точке (0, 0).
   srcRect.x = srcRect.y = 0;
   srcRect.w = dstRect.w = width;
   srcRect.h = dstRect.h = height;
 
-  // Размещаем в указанных координатах на экране
+  // Размещаем в указанных координатах на экране.
   dstRect.x = x;
   dstRect.y = y;
 
-  // Отрисовка с возможностью поворота и отражения
-  // 0 - угол поворота, NULL - центр вращения (по умолчанию центр текстуры)
+  // 0 - угол поворота, NULL - центр вращения (по умолчанию центр текстуры).
   SDL_RenderTextureRotated(renderer, textureMap_[tag], &srcRect, &dstRect, 0,
                            NULL, flip);
 }
@@ -47,14 +51,12 @@ void TextureManager::draw(std::string tag, float x, float y, float width,
 void TextureManager::drawFrame(std::string tag, float x, float y, float width,
                                float height, int currentRow, int currentFrame,
                                SDL_Renderer* renderer, SDL_FlipMode flip) {
-  SDL_FRect srcRect;  // Какой кадр вырезаем из спрайт-листа
-  SDL_FRect dstRect;  // Куда рисуем на экране
+  SDL_FRect srcRect;
+  SDL_FRect dstRect;
 
-  // Вычисляем позицию нужного кадра в спрайт-листе:
-  // По горизонтали: номер кадра * ширина одного кадра
+  // Позиция нужного кадра в спрайт-листе.
   srcRect.x = width * currentFrame;
-  // По вертикали: (номер строки - 1) * высота одного кадра
-  // Строки нумеруются с 1, поэтому вычитаем единицу
+  // Строки нумеруются с 1, поэтому вычитаем единицу.
   srcRect.y = height * (currentRow - 1);
 
   srcRect.w = dstRect.w = width;

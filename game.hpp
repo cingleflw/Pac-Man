@@ -7,7 +7,7 @@
  * обработки событий, обновления состояния и отрисовки кадров.
  */
 
-#include <SDL3/SDL.h>  // Основная библиотека SDL
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
 #include <string>
@@ -23,11 +23,12 @@
  * @note Экземпляр Game владеет окном и отрисовщиком. Метод clean()
  * должен быть вызван перед завершением программы.
  */
-
 class Game {
  public:
-  Game() {}   ///< Конструктор по умолчанию.
-  ~Game() {}  ///< Деструктор. @warning Не вызывает clean() автоматически.
+  Game() {}
+
+  /// Деструктор. @warning Не вызывает clean() автоматически.
+  ~Game() {}
 
   /**
    * @brief Инициализирует SDL - создаёт окно и отрисовщик.
@@ -43,7 +44,6 @@ class Game {
    * @post При успехе window_ и renderer_ указывают на окно и отрисовщик.
    * @return true - инициализация прошла успешно, false - произошла ошибка.
    */
-
   bool init(std::string title, int w, int h, int flags);
 
   /**
@@ -53,7 +53,6 @@ class Game {
    *
    * @pre Отрисовщик должен быть успешно создан через init().
    */
-
   void render();
 
   /// @brief Обновляет игровую логику на один тик. Вызывается каждый кадр.
@@ -66,7 +65,6 @@ class Game {
    * - SDL_EVENT_QUIT - закрытие окна.
    * - SDL_EVENT_WINDOW_RESIZED - изменение размера окна.
    */
-
   void handleEvents();
 
   /**
@@ -76,7 +74,6 @@ class Game {
    *
    * @post window_ и renderer_ становятся невалидными указателями.
    */
-
   void clean();
 
   /// @brief Запускает игровой цикл, устанавливая флаг running_.
@@ -89,12 +86,18 @@ class Game {
    * @brief Проверяет, выполняется ли игровой цикл.
    * @return true - игра запущена, false - игра остановлена.
    */
-
   bool isRunning() { return running_; }
 
  private:
-  bool running_ = false;              ///< Флаг: запущена ли игра
-  SDL_Window* window_ = nullptr;      ///< Указатель на окно
-  SDL_Renderer* renderer_ = nullptr;  ///< Указатель на отрисовщик
-  int currentFrame_ = 0;              ///< Номер текущего кадра анимации
+  /// Флаг: запущена ли игра.
+  bool running_ = false;
+
+  /// Указатель на окно.
+  SDL_Window* window_ = nullptr;
+
+  /// Указатель на отрисовщик.
+  SDL_Renderer* renderer_ = nullptr;
+
+  /// Номер текущего кадра анимации.
+  int currentFrame_ = 0;
 };

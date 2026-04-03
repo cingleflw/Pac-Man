@@ -42,7 +42,7 @@
 | ----------------------------------------------------------- |
 | [qazwsxill](https://github.com/qazwsxill)                   |
 | [cingleflw](https://github.com/cingleflw)                   |
-| [mochalow](https://github.com/mochalow)                    |
+| [mochalow](https://github.com/mochalow)                     |
 | [dasanauhackaa-cell](https://github.com/dasanauhackaa-cell) |
 
 ## Лицензия

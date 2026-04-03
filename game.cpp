@@ -9,7 +9,7 @@
 
 #include "texture_manager.hpp"
 
-// SDL требует, чтобы main имел именно такую сигнатуру (int, char**).
+// SDL требует, чтобы main имел именно такую сигнатуру.
 int main(int argv, char** argc) {
   Game g;
 
@@ -17,15 +17,15 @@ int main(int argv, char** argc) {
              SDL_WINDOW_RESIZABLE | SDL_WINDOW_MINIMIZED)) {
     g.startGame();
   } else {
-    return 1;  // Инициализация не удалась – выход с ошибкой
+    return 1;  // Инициализация не удалась - выход с ошибкой.
   }
 
   // Главный вечный игровой цикл. Выполняется каждый тик (кадр). Завершается,
   // когда running_ станет false.
   while (g.isRunning()) {
-    g.handleEvents();  // 1. Слушаем ввод
-    g.update();        // 2. Обновляем состояние
-    g.render();        // 3. Отрисовываем кадр
+    g.handleEvents();  // Слушаем ввод.
+    g.update();        // Обновляем состояние.
+    g.render();        // Отрисовываем кадр.
   }
 
   g.clean();
@@ -66,12 +66,12 @@ bool Game::init(std::string title, int w, int h, int flags) {
 void Game::render() {
   // Цвет заливки - красный.
   SDL_SetRenderDrawColor(renderer_, 255, 0, 0, 255);
-  SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее
+  SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее.
 
-  // Рисуем текстуру персонажа: позиция (100, 100), размер 200×200
+  // Рисуем текстуру персонажа: позиция (100, 100), размер 200*200.
   TextureManager::Instance().draw("main_char", 100, 100, 200, 200, renderer_);
 
-  SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние
+  SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние.
 }
 
 void Game::update() {
@@ -80,14 +80,14 @@ void Game::update() {
 }
 
 void Game::handleEvents() {
-  SDL_Event event;  // Структура для хранения текущего события
+  SDL_Event event;  // Структура для хранения текущего события.
 
   // SDL_PollEvent записывает событие по ссылке. Возвращает true, если в очереди
   // было событие.
   if (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_EVENT_QUIT:
-        stopGame();  // Закрытие окна
+        stopGame();  // Закрытие окна.
         break;
 
       case SDL_EVENT_WINDOW_RESIZED:
@@ -100,7 +100,7 @@ void Game::handleEvents() {
 }
 
 void Game::clean() {
-  // Порядок, обратный созданию
+  // Порядок, обратный созданию.
   std::cout << "exit" << std::endl;
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
