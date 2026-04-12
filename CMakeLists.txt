@@ -24,7 +24,9 @@ FetchContent_MakeAvailable(SDL3 SDL3_image)
 
 add_executable(Pac-Man
   game.cpp
-  game.hpp)
+  game.hpp
+  texture_manager.cpp
+  texture_manager.hpp)
 target_link_libraries(Pac-Man PRIVATE SDL3::SDL3 SDL3_image::SDL3_image)
 
 add_custom_command(TARGET Pac-Man POST_BUILD
@@ -37,4 +39,10 @@ add_custom_command(TARGET Pac-Man POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:SDL3_image::SDL3_image>
     $<TARGET_FILE_DIR:Pac-Man>
+)
+
+add_custom_command(TARGET Pac-Man POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets
+    $<TARGET_FILE_DIR:Pac-Man>/assets
 )
