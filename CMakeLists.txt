@@ -26,7 +26,9 @@ add_executable(Pac-Man
   game.cpp
   game.hpp
   texture_manager.cpp
-  texture_manager.hpp)
+  texture_manager.hpp
+  game_map.cpp
+  game_map.hpp)
 target_link_libraries(Pac-Man PRIVATE SDL3::SDL3 SDL3_image::SDL3_image)
 
 add_custom_command(TARGET Pac-Man POST_BUILD

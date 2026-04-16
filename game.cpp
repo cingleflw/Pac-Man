@@ -44,6 +44,11 @@ bool Game::init(std::string title, int w, int h, int flags) {
 
     if (renderer_ != 0) {
       std::cout << "renderer created" << std::endl;
+
+      if (!map_.loadFromFile("assets/levels/level_1.txt")) {
+        return false;
+      }
+
       if (TextureManager::instance().load("assets/test.png", "main_char",
                                           renderer_)) {
         std::cout << "main texture created" << std::endl;
@@ -67,6 +72,8 @@ void Game::render() {
   // Цвет заливки - красный.
   SDL_SetRenderDrawColor(renderer_, 255, 0, 0, 255);
   SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее.
+
+  map_.render(renderer_);
 
   // Рисуем текстуру персонажа: позиция (100, 100), размер 200*200.
   TextureManager::instance().draw("main_char", 100, 100, 200, 200, renderer_);
