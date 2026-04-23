@@ -20,20 +20,13 @@
  *
  * Числовые значения соответствуют символам в файле карты и
  * индексам кадров в спрайтлисте тайлсета.
- *
- * @note PacmanSpawn и GhostSpawn используются только в файле карты как
- * маркеры стартовых позиций сущностей. После загрузки они не попадают в data_ -
- * соответствующие ячейки заменяются на Empty или Dot в зависимости от
- * сущности, а координаты сохраняются в pacman_spawn_ и ghost_spawns_.
  */
 enum class TileType : int {
-  Empty = 0,        // Пустой коридор.
-  Wall = 1,         // Стена.
-  Dot = 2,          // Обычная точка.
-  Energizer = 3,    // Большая точка.
-  GhostDoor = 4,    // Дверь дома призраков.
-  PacmanSpawn = 5,  // Место появления игрока.
-  GhostSpawn = 6    // Место появления призраков.
+  Empty = 0,      // Пустой коридор.
+  Wall = 1,       // Стена.
+  Dot = 2,        // Обычная точка.
+  Energizer = 3,  // Большая точка.
+  GhostDoor = 4,  // Дверь дома призраков.
 };
 
 ///@brief Координаты ячейки на карты.
@@ -77,13 +70,18 @@ class GameMap {
    * @param[in] path         Путь к файлу карты.
    * @param[in] tileset_tag  Тег текстуры спрайтлиста из TextureManager.
    * Используется в render().
+   * @param[in] tile_size    Пикселей на тайл. По умолчанию 32.
    * @pre Текстура с тегом tileset_tag должна быть загружена в TextureManager.
    * @post При успехе поля data_, cols_, rows_, dots_remaining_,
-   *       pacman_spawn_, ghost_spawns_ и tileset_tag_ заполнены.
+   *       pacman_spawn_, ghost_spawns_, tileset_tag_, tile_size_ заполнены.
+   * @note Маркеры спауна 5 для игрока, 6 для Blinky, 7 для Pinky, 8 для Inky, 9
+   * для Clyde не попадают в data_. В точке маркера остаётся подходящий базовый
+   * тайл, а координаты сохраняются в spawn-поля класса.
    * @return true - карта успешно загружена, false - ошибка открытия или формата
    * файла.
    */
-  bool load_from_file(const std::string& path, const std::string& tileset_tag);
+  bool load_from_file(const std::string& path, const std::string& tileset_tag,
+                      int tile_size = 32);
 
   /**
    * @brief Отрисовывает всё игровое поле.
@@ -117,16 +115,26 @@ class GameMap {
   void set_tile(int col, int row, TileType type);
 
   /**
-   * @brief Проверяет, можно ли пройти в ячейку.
+   * @brief Проверяет может ли пройти в ячейку игрок.
    *
-   * Нельзя пройти через Wall и GhostDoor. Проверка GhostDoor
-   * как для Pac-Man.
+   * Нельзя пройти через Wall и GhostDoor.
    *
    * @param[in] col Индекс столбца.
    * @param[in] row Индекс строки.
    * @return true - ячейка проходима, false - нет.
    */
-  bool is_walkable(int col, int row) const;
+  bool is_walkable_by_player(int col, int row) const;
+
+  /**
+   * @brief Проверяет может ли пройти в ячейку призрак.
+   *
+   * Нельзя пройти через Wall.
+   *
+   * @param[in] col Индекс столбца.
+   * @param[in] row Индекс строки.
+   * @return true - ячейка проходима, false - нет.
+   */
+  bool is_walkable_by_ghost(int col, int row) const;
 
   /// @brief Возвращает число столбцов карты.
   int get_cols() const { return cols_; }
@@ -162,7 +170,7 @@ class GameMap {
    */
   float tile_to_center_pixel(int col) const { return (col + 0.5) * tile_size_; }
 
-  ///@brief Возвращает число оставшихся на карте точек (Dot и Energizer).
+  /// @brief Возвращает число оставшихся на карте точек (Dot и Energizer).
   int get_dots_remaining() const { return dots_remaining_; }
 
   /**
@@ -195,9 +203,9 @@ class GameMap {
   std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
   int cols_ = 0;                               // Столбцы.
   int rows_ = 0;                               // Строки.
-  int tile_size_ = 32;                         // Пикселей на тайл.
+  int tile_size_ = 0;                          // Пикселей на тайл.
   int dots_remaining_ = 0;                     // Осталось точек.
   GridPos pacman_spawn_ = {};                  // Коордиаты спауна игрока.
   std::vector<GhostSpawn> ghost_spawns_ = {};  // Координаты спауна призраков.
-  std::string tileset_tag_;                    // Тег спрайтлиста тайлсета.
+  std::string tileset_tag_;                    // Тег текстуры тайлсета.
 };

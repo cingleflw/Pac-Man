@@ -6,15 +6,19 @@
 #include "texture_manager.hpp"
 
 bool GameMap::load_from_file(const std::string& path,
-                             const std::string& tileset_tag) {
+                             const std::string& tileset_tag, int tile_size) {
   std::ifstream file(path);
   if (!file.is_open()) {
     std::cerr << "GameMap: failed to open " << path << std::endl;
     return false;
   }
   tileset_tag_ = tileset_tag;
+  tile_size_ = tile_size;
 
   data_.clear();
+  dots_remaining_ = 0;
+  pacman_spawn_ = {};
+  ghost_spawns_.clear();
 
   std::string line;
   int line_number = 0;
@@ -149,9 +153,14 @@ void GameMap::set_tile(int col, int row, TileType type) {
   data_[row][col] = type;
 }
 
-bool GameMap::is_walkable(int col, int row) const {
+bool GameMap::is_walkable_by_player(int col, int row) const {
   TileType tile = get_tile(col, row);
   return tile != TileType::Wall && tile != TileType::GhostDoor;
+}
+
+bool GameMap::is_walkable_by_ghost(int col, int row) const {
+  TileType tile = get_tile(col, row);
+  return tile != TileType::Wall;
 }
 
 GridPos GameMap::normalize_position(int col, int row) const {
