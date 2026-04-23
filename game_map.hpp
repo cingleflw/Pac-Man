@@ -1,3 +1,13 @@
+/**
+ * @file game_map.hpp
+ * @brief Игровое поле - тайловая карта, загружаемая из текстового
+ * файла.
+ *
+ * Содержит перечисления для типов тайлов, структуры для координат и стартовых
+ * позиций, класс GameMap, который владеет данными уровня и
+ * предоставляет интерфейс для его загрузки, отрисовки и запросов.
+ */
+
 #pragma once
 
 #include <SDL3/SDL.h>
@@ -5,40 +15,189 @@
 #include <string>
 #include <vector>
 
-/// @brief Типы тайлов игрового поля.
+/**
+ * @brief Типы тайлов игрового поля.
+ *
+ * Числовые значения соответствуют символам в файле карты и
+ * индексам кадров в спрайтлисте тайлсета.
+ *
+ * @note PacmanSpawn и GhostSpawn используются только в файле карты как
+ * маркеры стартовых позиций сущностей. После загрузки они не попадают в data_ -
+ * соответствующие ячейки заменяются на Empty или Dot в зависимости от
+ * сущности, а координаты сохраняются в pacman_spawn_ и ghost_spawns_.
+ */
 enum class TileType : int {
-  Empty = 0,      // Пустой коридор.
-  Wall = 1,       // Стена.
-  Dot = 2,        // Обычная точка.
-  Energizer = 3,  // Большая точка.
-  GhostDoor = 4   // Дверь дома призраков
+  Empty = 0,        // Пустой коридор.
+  Wall = 1,         // Стена.
+  Dot = 2,          // Обычная точка.
+  Energizer = 3,    // Большая точка.
+  GhostDoor = 4,    // Дверь дома призраков.
+  PacmanSpawn = 5,  // Место появления игрока.
+  GhostSpawn = 6    // Место появления призраков.
 };
 
-/// @brief Игровое поле, загружаемое из текстового файла.
+///@brief Координаты ячейки на карты.
+struct GridPos {
+  int col;  // Столбец
+  int row;  // Строка
+};
+
+///@brief Идентификатор призрака.
+enum class GhostId {
+  Blinky,  // Красный.
+  Pinky,   // Розовый.
+  Inky,    // Голубой.
+  Clyde,   // Оранжевый.
+};
+
+///@brief Стартовая позиция одного призрака.
+struct GhostSpawn {
+  GhostId id;        // Какой призрак.
+  GridPos position;  // В какой ячейке.
+};
+
+/**
+ * @brief Игровое поле, загружаемое из текстового файла.
+ *
+ * Класс владеет сеткой тайлов уровня, информацией о стартовых
+ * позициях персонажей и тегом тайлсета для отрисовки. Предоставляет
+ * интерфейс для запросов (что в ячейке, можно ли пройти, сколько точек
+ * осталось).
+ */
 class GameMap {
  public:
-  /// Загружает карту из файла. Возвращает false при ошибке.
-  bool loadFromFile(const std::string& path);
+  /**
+   * @brief Загружает карту из текстового файла.
+   *
+   * Файл состоит из строк одинаковой длины, где каждый символ -
+   * это цифра от 0 до 9, соответствующая значению TileType и маркеру
+   * спауна. Подсчитывает число точек и
+   * запоминает стартовые позиции персонажей.
+   *
+   * @param[in] path         Путь к файлу карты.
+   * @param[in] tileset_tag  Тег текстуры спрайтлиста из TextureManager.
+   * Используется в render().
+   * @pre Текстура с тегом tileset_tag должна быть загружена в TextureManager.
+   * @post При успехе поля data_, cols_, rows_, dots_remaining_,
+   *       pacman_spawn_, ghost_spawns_ и tileset_tag_ заполнены.
+   * @return true - карта успешно загружена, false - ошибка открытия или формата
+   * файла.
+   */
+  bool load_from_file(const std::string& path, const std::string& tileset_tag);
 
-  /// Отрисовывает всё поле.
+  /**
+   * @brief Отрисовывает всё игровое поле.
+   *
+   * @param[in] renderer Отрисовщик, в который производится отрисовка.
+   * @pre load_from_file() должен быть успешно выполнен.
+   */
   void render(SDL_Renderer* renderer);
 
-  /// Возвращает тип тайла по координатам сетки.
-  TileType getTile(int col, int row) const;
+  /**
+   * @brief Возвращает тип тайла по координатам сетки.
+   *
+   * При запросе за пределами карты возвращает Wall.
+   *
+   * @param[in] col Индекс столбца.
+   * @param[in] row Индекс строки.
+   * @return Тип тайла в ячейке или Wall, если координаты вне карты.
+   */
+  TileType get_tile(int col, int row) const;
 
-  /// Устанавливает тип тайла.
-  void setTile(int col, int row, TileType type);
+  /**
+   * @brief Устанавливает тип тайла и обновляет счётчик точек.
+   *
+   * Увеличивает или уменьшает счётчик dots_remaining_. Запись за пределами
+   * карты игнорируется.
+   *
+   * @param[in] col  Индекс столбца.
+   * @param[in] row  Индекс строки.
+   * @param[in] type Новый тип тайла.
+   */
+  void set_tile(int col, int row, TileType type);
 
-  /// Проверяет, можно ли пройти в ячейку.
-  bool isWalkable(int col, int row) const;
+  /**
+   * @brief Проверяет, можно ли пройти в ячейку.
+   *
+   * Нельзя пройти через Wall и GhostDoor. Проверка GhostDoor
+   * как для Pac-Man.
+   *
+   * @param[in] col Индекс столбца.
+   * @param[in] row Индекс строки.
+   * @return true - ячейка проходима, false - нет.
+   */
+  bool is_walkable(int col, int row) const;
 
-  int getCols() const { return cols_; }
-  int getRows() const { return rows_; }
-  int getTileSize() const { return tile_size_; }
+  /// @brief Возвращает число столбцов карты.
+  int get_cols() const { return cols_; }
+
+  /// @brief Возвращает число строк карты.
+  int get_rows() const { return rows_; }
+
+  /// @brief Возвращает размер одного тайла в пикселях.
+  int get_tile_size() const { return tile_size_; }
+
+  /**
+   * @brief Преобразует координату в пикселях в индекс тайла.
+   *
+   * @param[in] x Пиксельная координата.
+   * @return Индекс соответствующей ячейки сетки.
+   */
+  int pixel_to_tile(float x) const { return x / tile_size_; }
+
+  /**
+   * @brief Преобразует индекс тайла в координату в пикселях его левого верхнего
+   * угла.
+   *
+   * @param[in] col Индекс тайла.
+   * @return Координата левого верхнего угла ячейки в пикселях.
+   */
+  float tile_to_pixel(int col) const { return col * tile_size_; }
+
+  /**
+   * @brief Преобразует индекс тайла в координату его центра в пикселях.
+   *
+   * @param[in] col Индекс тайла.
+   * @return Координата центра ячейки в пикселях.
+   */
+  float tile_to_center_pixel(int col) const { return (col + 0.5) * tile_size_; }
+
+  ///@brief Возвращает число оставшихся на карте точек (Dot и Energizer).
+  int get_dots_remaining() const { return dots_remaining_; }
+
+  /**
+   * @brief Проверяет, собраны ли все точки на карте.
+   * @return true - уровень пройден, false - точки ещё остались.
+   */
+  bool is_cleared() const { return dots_remaining_ == 0; }
+
+  /// @brief Возвращает стартовую позицию игрока.
+  GridPos get_pacman_spawn() const { return pacman_spawn_; }
+
+  ///@brief Возвращает список стартовых позиций всех призраков.
+  const std::vector<GhostSpawn>& get_ghost_spawns() const {
+    return ghost_spawns_;
+  }
+
+  /**
+   * @brief Нормализует координаты с учётом туннеля.
+   *
+   * Если координата выходит за край карты - возвращает индекс ячейки
+   * на противоположном крае.
+   *
+   * @param[in] col Индекс столбца.
+   * @param[in] row Индекс строки.
+   * @return Нормализованные координаты.
+   */
+  GridPos normalize_position(int col, int row) const;
 
  private:
-  std::vector<std::vector<TileType>> data_;
-  int cols_ = 0;        // Столбцы.
-  int rows_ = 0;        // Строки.
-  int tile_size_ = 24;  // Пикселей на тайл.
+  std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
+  int cols_ = 0;                               // Столбцы.
+  int rows_ = 0;                               // Строки.
+  int tile_size_ = 24;                         // Пикселей на тайл.
+  int dots_remaining_ = 0;                     // Осталось точек.
+  GridPos pacman_spawn_ = {};                  // Коордиаты спауна игрока.
+  std::vector<GhostSpawn> ghost_spawns_ = {};  // Координаты спауна призраков.
+  std::string tileset_tag_;                    // Тег спрайтлиста тайлсета.
 };

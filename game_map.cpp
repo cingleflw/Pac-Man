@@ -1,44 +1,126 @@
-#pragma once
-
 #include "game_map.hpp"
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
 
-bool GameMap::loadFromFile(const std::string& path) {
+#include "texture_manager.hpp"
+
+bool GameMap::load_from_file(const std::string& path,
+                             const std::string& tileset_tag) {
   std::ifstream file(path);
   if (!file.is_open()) {
-    std::cerr << "GameMap: failed to open " << path << "\n";
+    std::cerr << "GameMap: failed to open " << path << std::endl;
     return false;
   }
+  tileset_tag_ = tileset_tag;
 
   data_.clear();
 
   std::string line;
+  int line_number = 0;
   while (std::getline(file, line)) {
-    std::vector<TileType> row;
-    for (char ch : line) {
-      // Каждый символ - это одна цифра.
-      // Вычитание '0' превращает ASCII-код в число.
-      int value = ch - '0';
-      row.push_back(static_cast<TileType>(value));
+    ++line_number;
+    if (line.empty()) {
+      continue;
     }
-    data_.push_back(row);
+
+    // Временный вектор для тайлов текущей строки карты.
+    std::vector<TileType> row_vec;
+
+    for (int col = 0; col < line.size(); ++col) {
+      char ch = line[col];
+      if (ch < '0' || ch > '9') {
+        std::cerr << "GameMap: invalid char '" << ch << "' at line "
+                  << line_number << std::endl;
+        return false;
+      }
+
+      // Вычитание '0' превращает ASCII-код в число (символы идут подряд).
+      int value = ch - '0';
+      TileType tile;
+      int row = data_.size();
+      switch (value) {
+        case 0:
+          tile = TileType::Empty;
+          break;
+        case 1:
+          tile = TileType::Wall;
+          break;
+        case 2:
+          tile = TileType::Dot;
+          break;
+        case 3:
+          tile = TileType::Energizer;
+          break;
+        case 4:
+          tile = TileType::GhostDoor;
+          break;
+
+        case 5:  // Игрок.
+          pacman_spawn_ = {col, row};
+          tile = TileType::Empty;
+          break;
+
+        case 6:  // Blinky.
+          ghost_spawns_.push_back({GhostId::Blinky, {col, row}});
+          tile = TileType::Dot;
+          break;
+
+        case 7:  // Pinky.
+          ghost_spawns_.push_back({GhostId::Pinky, {col, row}});
+          tile = TileType::Empty;
+          break;
+
+        case 8:  // Inky.
+          ghost_spawns_.push_back({GhostId::Inky, {col, row}});
+          tile = TileType::Empty;
+          break;
+
+        case 9:  // Clyde.
+          ghost_spawns_.push_back({GhostId::Clyde, {col, row}});
+          tile = TileType::Empty;
+          break;
+
+        default:
+          tile = TileType::Empty;
+          break;
+      }
+      row_vec.push_back(tile);
+    }
+    data_.push_back(row_vec);
+  }
+
+  if (data_.empty()) {
+    std::cerr << "GameMap: file is empty" << std::endl;
+    return false;
+  }
+
+  // Проверяем, что все строки одинаковой ширины.
+  const size_t expected_width = data_[0].size();
+  for (size_t i = 1; i < data_.size(); ++i) {
+    if (data_[i].size() != expected_width) {
+      std::cerr << "GameMap: row " << i << " has width " << data_[i].size()
+                << ", expected " << expected_width << std::endl;
+      return false;
+    }
   }
 
   rows_ = data_.size();
-  if (rows_ > 0) {
-    cols_ = static_cast<int>(data_[0].size());
-  } else {
-    cols_ = 0;
+  cols_ = expected_width;
+
+  for (const auto& row : data_) {
+    for (TileType tile : row) {
+      if (tile == TileType::Dot || tile == TileType::Energizer) {
+        ++dots_remaining_;
+      }
+    }
   }
 
-  std::cout << "GameMap: map loaded\n";
+  std::cout << "GameMap: map loaded" << std::endl;
   return true;
 }
 
-TileType GameMap::getTile(int col, int row) const {
+TileType GameMap::get_tile(int col, int row) const {
   // Запрос за пределами карты -> возвращаем стену.
   if (col < 0 || col >= cols_ || row < 0 || row >= rows_) {
     return TileType::Wall;
@@ -46,61 +128,59 @@ TileType GameMap::getTile(int col, int row) const {
   return data_[row][col];
 }
 
-void GameMap::setTile(int col, int row, TileType type) {
+void GameMap::set_tile(int col, int row, TileType type) {
   if (col < 0 || col >= cols_ || row < 0 || row >= rows_) {
     return;
   }
+
+  bool was_dot = (data_[row][col] == TileType::Dot ||
+                  data_[row][col] == TileType::Energizer);
+  bool is_dot = (type == TileType::Dot || type == TileType::Energizer);
+
+  // Всегда dots_remaining_ = Dot + Energizer
+  if (was_dot && !is_dot) {
+    --dots_remaining_;
+  }
+
+  if (!was_dot && is_dot) {
+    ++dots_remaining_;
+  }
+
   data_[row][col] = type;
 }
 
-bool GameMap::isWalkable(int col, int row) const {
-  TileType tile = getTile(col, row);
+bool GameMap::is_walkable(int col, int row) const {
+  TileType tile = get_tile(col, row);
   return tile != TileType::Wall && tile != TileType::GhostDoor;
+}
+
+GridPos GameMap::normalize_position(int col, int row) const {
+  // Выход за левый край переносит сущности в правый край, и наоборот.
+  if (col < 0) {
+    col = cols_ - 1;
+  } else if (col >= cols_) {
+    col = 0;
+  }
+
+  if (row < 0) {
+    row = rows_ - 1;
+  } else if (row >= rows_) {
+    row = 0;
+  }
+
+  return {col, row};
 }
 
 void GameMap::render(SDL_Renderer* renderer) {
   for (int row = 0; row < rows_; ++row) {
     for (int col = 0; col < cols_; ++col) {
-      TileType tile = data_[row][col];
+      // Номер кадра в строке.
+      int tile_id = static_cast<int>(data_[row][col]);
 
-      SDL_FRect dst = {static_cast<float>(col * tile_size_),
-                       static_cast<float>(row * tile_size_),
-                       static_cast<float>(tile_size_),
-                       static_cast<float>(tile_size_)};
-
-      switch (tile) {
-        case TileType::Wall:
-          SDL_SetRenderDrawColor(renderer, 33, 33, 222, 255);
-          SDL_RenderFillRect(renderer, &dst);
-          break;
-
-        case TileType::Dot: {
-          float dot_size = tile_size_ / 6;
-          SDL_FRect dot = {dst.x + (tile_size_ - dot_size) / 2,
-                           dst.y + (tile_size_ - dot_size) / 2, dot_size,
-                           dot_size};
-          SDL_SetRenderDrawColor(renderer, 255, 255, 200, 255);
-          SDL_RenderFillRect(renderer, &dot);
-          break;
-        }
-
-        case TileType::Energizer: {
-          float e_size = tile_size_ / 2;
-          SDL_FRect e = {dst.x + (tile_size_ - e_size) / 2,
-                         dst.y + (tile_size_ - e_size) / 2, e_size, e_size};
-          SDL_SetRenderDrawColor(renderer, 255, 255, 200, 255);
-          SDL_RenderFillRect(renderer, &e);
-          break;
-        }
-
-        case TileType::GhostDoor:
-          SDL_SetRenderDrawColor(renderer, 255, 180, 200, 255);
-          SDL_RenderFillRect(renderer, &dst);
-          break;
-
-        default:
-          break;
-      }
+      // Все тайлы в первой строке.
+      TextureManager::instance().draw_frame(tileset_tag_, tile_to_pixel(col),
+                                            tile_to_pixel(row), tile_size_,
+                                            tile_size_, 1, tile_id, renderer);
     }
   }
 }
