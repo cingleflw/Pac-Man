@@ -45,9 +45,18 @@ bool Game::init(std::string title, int w, int h, int flags) {
     if (renderer_ != 0) {
       std::cout << "renderer created" << std::endl;
 
-      if (!map_.loadFromFile("assets/levels/level_1.txt")) {
+      if (TextureManager::instance().load("assets/levels/tileset_1.png",
+                                          "tileset_1", renderer_)) {
+        std::cout << "tileset texture created" << std::endl;
+      } else {
+        std::cerr << "texture error" << std::endl;
         return false;
       }
+
+      if (!map_.load_from_file("assets/levels/level_1.txt", "tileset_1")) {
+        return false;
+      }
+      auto spawn = map_.get_pacman_spawn();
 
       if (TextureManager::instance().load("assets/test.png", "main_char",
                                           renderer_)) {
