@@ -13,7 +13,7 @@
 int main(int argv, char** argc) {
   Game g;
 
-  if (g.init("TEST WINDOW", 672, 744,
+  if (g.init("TEST WINDOW", 896, 992,
              SDL_WINDOW_RESIZABLE | SDL_WINDOW_MINIMIZED)) {
     g.start_game();
   } else {

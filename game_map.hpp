@@ -195,7 +195,7 @@ class GameMap {
   std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
   int cols_ = 0;                               // Столбцы.
   int rows_ = 0;                               // Строки.
-  int tile_size_ = 24;                         // Пикселей на тайл.
+  int tile_size_ = 32;                         // Пикселей на тайл.
   int dots_remaining_ = 0;                     // Осталось точек.
   GridPos pacman_spawn_ = {};                  // Коордиаты спауна игрока.
   std::vector<GhostSpawn> ghost_spawns_ = {};  // Координаты спауна призраков.
