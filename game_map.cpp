@@ -180,16 +180,40 @@ GridPos GameMap::normalize_position(int col, int row) const {
   return {col, row};
 }
 
+int GameMap::compute_wall_mask(int col, int row) const {
+  // Вычисляем маску (номер тайла стены во второй строке). Бит 0 -
+  // слева, бит 1 - справа, бит 2 - снизу, бит 3 - сверху есть
+  // стена.
+  int mask = -1;
+  if (get_tile(col - 1, row) == TileType::Wall) mask += 1;
+  if (get_tile(col + 1, row) == TileType::Wall) mask += 2;
+  if (get_tile(col, row - 1) == TileType::Wall) mask += 4;
+  if (get_tile(col, row + 1) == TileType::Wall) mask += 8;
+
+  return mask;
+}
+
 void GameMap::render(SDL_Renderer* renderer) {
+  constexpr int BASE_TILE_ROW = 1;
+  constexpr int WALL_TILE_ROW = 2;
+
   for (int row = 0; row < rows_; ++row) {
     for (int col = 0; col < cols_; ++col) {
-      // Номер кадра в строке.
-      int tile_id = static_cast<int>(data_[row][col]);
+      int row_in_tileset;
+      int frame_in_row;
 
-      // Все тайлы в первой строке.
-      TextureManager::instance().draw_frame(tileset_tag_, tile_to_pixel(col),
-                                            tile_to_pixel(row), tile_size_,
-                                            tile_size_, 1, tile_id, renderer);
+      if (data_[row][col] != TileType::Wall) {
+        frame_in_row = static_cast<int>(data_[row][col]);
+        row_in_tileset = BASE_TILE_ROW;
+
+      } else {
+        frame_in_row = compute_wall_mask(col, row);
+        row_in_tileset = WALL_TILE_ROW;
+      }
+
+      TextureManager::instance().draw_frame(
+          tileset_tag_, tile_to_pixel(col), tile_to_pixel(row), tile_size_,
+          tile_size_, row_in_tileset, frame_in_row, renderer);
     }
   }
 }
