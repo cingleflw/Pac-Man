@@ -180,40 +180,124 @@ GridPos GameMap::normalize_position(int col, int row) const {
   return {col, row};
 }
 
-int GameMap::compute_wall_mask(int col, int row) const {
-  // Вычисляем маску (номер тайла стены во второй строке). Бит 0 -
-  // слева, бит 1 - справа, бит 2 - снизу, бит 3 - сверху есть
-  // стена.
-  int mask = -1;
-  if (get_tile(col - 1, row) == TileType::Wall) mask += 1;
-  if (get_tile(col + 1, row) == TileType::Wall) mask += 2;
-  if (get_tile(col, row - 1) == TileType::Wall) mask += 4;
-  if (get_tile(col, row + 1) == TileType::Wall) mask += 8;
+int GameMap::compute_corner_frame(int col, int row, Corner corner) const {
+  // Смещения соседей
+  int x, y = 0;
+  switch (corner) {
+    case Corner::TopLeft:
+      x = -1;
+      y = -1;
+      break;
+    case Corner::TopRight:
+      x = +1;
+      y = -1;
+      break;
+    case Corner::BottomLeft:
+      x = -1;
+      y = +1;
+      break;
+    case Corner::BottomRight:
+      x = +1;
+      y = +1;
+      break;
+  }
 
-  return mask;
+  bool x_wall = (get_tile(col + x, row) == TileType::Wall);  // Сосед  по x.
+  bool y_wall = (get_tile(col, row + y) == TileType::Wall);  // Сосед  по y.
+  bool d_wall =
+      (get_tile(col + x, row + y) == TileType::Wall);  // Сосед по диагонали.
+
+  if (!x_wall && !y_wall) {
+    return 0;  // Внешний угол.
+  }
+  if (x_wall && !y_wall) {
+    return 1;  // Горизонтальная стена.
+  }
+  if (!x_wall && y_wall) {
+    return 2;  // Вертикальная стена.
+  }
+  if (x_wall && y_wall && d_wall) {
+    return 3;  // Заливка.
+  }
+  return 4;  // Внутренний угол.
+}
+
+SDL_FlipMode GameMap::corner_flip(Corner corner) const {
+  switch (corner) {
+    case Corner::TopLeft:
+      return SDL_FLIP_NONE;
+    case Corner::TopRight:
+      return SDL_FLIP_HORIZONTAL;
+    case Corner::BottomLeft:
+      return SDL_FLIP_VERTICAL;
+    case Corner::BottomRight:
+      return static_cast<SDL_FlipMode>(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+
+    default:
+      return SDL_FLIP_NONE;
+  }
+}
+
+void GameMap::corner_offset(Corner corner, float& dx, float& dy) const {
+  float half = tile_size_ / 2.0;
+  switch (corner) {
+    case Corner::TopLeft:
+      dx = 0;
+      dy = 0;
+      break;
+    case Corner::TopRight:
+      dx = half;
+      dy = 0;
+      break;
+    case Corner::BottomLeft:
+      dx = 0;
+      dy = half;
+      break;
+    case Corner::BottomRight:
+      dx = half;
+      dy = half;
+      break;
+  }
+}
+
+void GameMap::draw_wall_corner(int col, int row, Corner corner,
+                               SDL_Renderer* renderer) const {
+  constexpr int CORNER_TILE_ROW = 5;  // Пятая строка тайлсета со стенами (если
+                                      // считать строки по tile_size_ / 2.0)
+
+  int frame = compute_corner_frame(col, row, corner);
+  SDL_FlipMode flip = corner_flip(corner);
+
+  float dx, dy;
+  corner_offset(corner, dx, dy);
+
+  float half = tile_size_ / 2.0;
+  TextureManager::instance().draw_frame(tileset_tag_, tile_to_pixel(col) + dx,
+                                        tile_to_pixel(row) + dy, half, half,
+                                        CORNER_TILE_ROW, frame, renderer, flip);
 }
 
 void GameMap::render(SDL_Renderer* renderer) {
   constexpr int BASE_TILE_ROW = 1;
-  constexpr int WALL_TILE_ROW = 2;
 
   for (int row = 0; row < rows_; ++row) {
     for (int col = 0; col < cols_; ++col) {
-      int row_in_tileset;
-      int frame_in_row;
+      TileType tile = data_[row][col];
 
-      if (data_[row][col] != TileType::Wall) {
-        frame_in_row = static_cast<int>(data_[row][col]);
-        row_in_tileset = BASE_TILE_ROW;
-
+      if (tile == TileType::Wall) {
+        // Стена рисуется как четыре угловых спрайта.
+        draw_wall_corner(col, row, Corner::TopLeft, renderer);
+        draw_wall_corner(col, row, Corner::TopRight, renderer);
+        draw_wall_corner(col, row, Corner::BottomLeft, renderer);
+        draw_wall_corner(col, row, Corner::BottomRight, renderer);
       } else {
-        frame_in_row = compute_wall_mask(col, row);
-        row_in_tileset = WALL_TILE_ROW;
-      }
+        // Обычный тайл - один спрайт на всю ячейку, кадр = TileType.
+        int frame_in_row = static_cast<int>(tile);
 
-      TextureManager::instance().draw_frame(
-          tileset_tag_, tile_to_pixel(col), tile_to_pixel(row), tile_size_,
-          tile_size_, row_in_tileset, frame_in_row, renderer);
+        TextureManager::instance().draw_frame(
+            tileset_tag_, tile_to_pixel(col), tile_to_pixel(row), tile_size_,
+            tile_size_, BASE_TILE_ROW, frame_in_row, renderer);
+      }
     }
   }
 }

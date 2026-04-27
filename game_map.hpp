@@ -29,13 +29,13 @@ enum class TileType : int {
   GhostDoor = 4,  // Дверь дома призраков.
 };
 
-///@brief Координаты ячейки на карты.
+/// @brief Координаты ячейки на карты.
 struct GridPos {
   int col;  // Столбец
   int row;  // Строка
 };
 
-///@brief Идентификатор призрака.
+/// @brief Идентификатор призрака.
 enum class GhostId {
   Blinky,  // Красный.
   Pinky,   // Розовый.
@@ -43,10 +43,22 @@ enum class GhostId {
   Clyde,   // Оранжевый.
 };
 
-///@brief Стартовая позиция одного призрака.
+/// @brief Стартовая позиция одного призрака.
 struct GhostSpawn {
   GhostId id;        // Какой призрак.
   GridPos position;  // В какой ячейке.
+};
+
+/**
+ * @brief Угол тайла. Используется при рендере стен через
+ * автотайлинг - каждый тайл рисуется как четыре угловых спрайта,
+ * выбираемых в зависимости от соседей.
+ */
+enum class Corner {
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight,
 };
 
 /**
@@ -182,7 +194,7 @@ class GameMap {
   /// @brief Возвращает стартовую позицию игрока.
   GridPos get_pacman_spawn() const { return pacman_spawn_; }
 
-  ///@brief Возвращает список стартовых позиций всех призраков.
+  /// @brief Возвращает список стартовых позиций всех призраков.
   const std::vector<GhostSpawn>& get_ghost_spawns() const {
     return ghost_spawns_;
   }
@@ -209,7 +221,18 @@ class GameMap {
   std::vector<GhostSpawn> ghost_spawns_ = {};  // Координаты спауна призраков.
   std::string tileset_tag_;                    // Тег текстуры тайлсета.
 
-  int compute_wall_mask(int col, int row)
-      const;  // Вычисление маски (=номер тайла) стены, в зависимости от соседей
-              // сверху, снизу, слева, справа.
+  /// @brief Выбирает номер спрайта для одного угла тайла стены.
+  int compute_corner_frame(int col, int row, Corner corner) const;
+
+  /// @brief Возвращает режим поворота текстуры, чтобы левый верхний спрайт стал
+  /// спрайтом угла corner.
+  SDL_FlipMode corner_flip(Corner corner) const;
+
+  /// @brief Записывает в dx и dy смещение углового спрайта
+  /// от левого верхнего угла тайла.
+  void corner_offset(Corner corner, float& dx, float& dy) const;
+
+  /// @brief Отрисовывает один угол тайла стены
+  void draw_wall_corner(int col, int row, Corner corner,
+                        SDL_Renderer* renderer) const;
 };
