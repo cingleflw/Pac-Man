@@ -262,7 +262,7 @@ void GameMap::corner_offset(Corner corner, float& dx, float& dy) const {
 
 void GameMap::draw_wall_corner(int col, int row, Corner corner,
                                SDL_Renderer* renderer) const {
-  constexpr int CORNER_TILE_ROW = 5;  // Пятая строка тайлсета со стенами (если
+  constexpr int CORNER_TILE_ROW = 3;  // Третья строка тайлсета со стенами (если
                                       // считать строки по tile_size_ / 2.0)
 
   int frame = compute_corner_frame(col, row, corner);
