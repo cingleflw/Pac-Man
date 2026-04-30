@@ -13,7 +13,7 @@
 int main(int argv, char** argc) {
   Game g;
 
-  if (g.init("TEST WINDOW", 640, 480,
+  if (g.init("TEST WINDOW", 896, 992,
              SDL_WINDOW_RESIZABLE | SDL_WINDOW_MINIMIZED)) {
     g.start_game();
   } else {
@@ -44,6 +44,20 @@ bool Game::init(std::string title, int w, int h, int flags) {
 
     if (renderer_ != 0) {
       std::cout << "renderer created" << std::endl;
+
+      if (TextureManager::instance().load("assets/levels/tileset_1.png",
+                                          "tileset_1", renderer_)) {
+        std::cout << "tileset texture created" << std::endl;
+      } else {
+        std::cerr << "texture error" << std::endl;
+        return false;
+      }
+
+      if (!map_.load_from_file("assets/levels/level_1.txt", "tileset_1")) {
+        return false;
+      }
+      auto spawn = map_.get_pacman_spawn();
+
       if (TextureManager::instance().load("assets/test.png", "main_char",
                                           renderer_)) {
         std::cout << "main texture created" << std::endl;
@@ -67,6 +81,8 @@ void Game::render() {
   // Цвет заливки - красный.
   SDL_SetRenderDrawColor(renderer_, 255, 0, 0, 255);
   SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее.
+
+  map_.render(renderer_);
 
   // Рисуем текстуру персонажа: позиция (100, 100), размер 200*200.
   TextureManager::instance().draw("main_char", 100, 100, 200, 200, renderer_);

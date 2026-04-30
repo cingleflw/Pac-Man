@@ -14,6 +14,8 @@
 
 #include <string>
 
+#include "game_map.hpp"
+
 /**
  * @brief Основной класс игры, управляющий её жизненным циклом.
  *
@@ -102,4 +104,6 @@ class Game {
 
   /// Номер текущего кадра анимации.
   int current_frame_ = 0;
+
+  GameMap map_;
 };
