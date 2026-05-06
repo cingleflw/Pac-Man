@@ -9,6 +9,8 @@
 
 #include "texture_manager.hpp"
 
+#include "input_handler.hpp"
+
 // SDL требует, чтобы main имел именно такую сигнатуру.
 int main(int argv, char** argc) {
   Game g;
@@ -58,13 +60,14 @@ bool Game::init(std::string title, int w, int h, int flags) {
       }
       auto spawn = map_.get_pacman_spawn();
 
-      if (TextureManager::instance().load("assets/test.png", "main_char",
+      if (TextureManager::instance().load("assets/character.png", "main_char",
                                           renderer_)) {
         std::cout << "main texture created" << std::endl;
       } else {
         std::cerr << "texture error" << std::endl;
         return false;
       }
+      player_ = Player(431, 739, 32, 32, "main_char");
     } else {
       std::cerr << "renderer error" << std::endl;
       return false;
@@ -84,8 +87,7 @@ void Game::render() {
 
   map_.render(renderer_);
 
-  // Рисуем текстуру персонажа: позиция (100, 100), размер 200*200.
-  TextureManager::instance().draw("main_char", 100, 100, 200, 200, renderer_);
+  player_.render(renderer_);
 
   SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние.
 }
@@ -93,6 +95,7 @@ void Game::render() {
 void Game::update() {
   // Циклически перебираем кадры от 0 до 5.
   current_frame_ = int((SDL_GetTicks() / 100) % 6);
+  player_.update();
 }
 
 void Game::handle_events() {
@@ -111,6 +114,11 @@ void Game::handle_events() {
         // Срабатывает в момент завершения ресайза окна. Можно пересчитать
         // размеры игровых элементов.
         break;
+      case SDL_EVENT_KEY_DOWN:
+      case SDL_EVENT_KEY_UP:
+        if (map_.is_cleared()) { stop_game(); }
+        InputHandler::Instance(player_, map_)->handle(event);
+        break;
     }
   }
 }
@@ -118,6 +126,7 @@ void Game::handle_events() {
 void Game::clean() {
   // Порядок, обратный созданию.
   std::cout << "exit" << std::endl;
+  player_.clean();
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();

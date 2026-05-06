@@ -15,6 +15,7 @@
 #include <string>
 
 #include "game_map.hpp"
+#include "player.hpp"
 
 /**
  * @brief Основной класс игры, управляющий её жизненным циклом.
@@ -106,4 +107,5 @@ class Game {
   int current_frame_ = 0;
 
   GameMap map_;
+  Player player_;
 };

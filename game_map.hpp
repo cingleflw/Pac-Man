@@ -211,6 +211,8 @@ class GameMap {
    */
   GridPos normalize_position(int col, int row) const;
 
+  void eating_dot(int col, int row);
+
  private:
   std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
   int cols_ = 0;                               // Столбцы.
