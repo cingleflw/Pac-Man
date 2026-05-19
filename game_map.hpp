@@ -14,6 +14,7 @@
 
 #include <string>
 #include <vector>
+#include "player.hpp"
 
 /**
  * @brief Типы тайлов игрового поля.
@@ -21,6 +22,9 @@
  * Числовые значения соответствуют символам в файле карты и
  * индексам кадров в первой строке тайлсета.
  */
+
+class Player;
+
 enum class TileType : int {
   Empty = 0,      // Пустой коридор.
   Wall = 1,       // Стена.
@@ -211,7 +215,7 @@ class GameMap {
    */
   GridPos normalize_position(int col, int row) const;
 
-  void eating_dot(int col, int row);
+  void eating_dot(int col, int row, Player& player);
 
  private:
   std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.

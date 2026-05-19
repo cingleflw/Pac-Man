@@ -67,7 +67,9 @@ bool Game::init(std::string title, int w, int h, int flags) {
         std::cerr << "texture error" << std::endl;
         return false;
       }
-      player_ = Player(431, 739, 32, 32, "main_char");
+      float spawn_x = map_.tile_to_pixel(spawn.col);
+      float spawn_y = map_.tile_to_pixel(spawn.row);
+      player_ = Player(spawn_x, spawn_y, 32, 32, "main_char");
     } else {
       std::cerr << "renderer error" << std::endl;
       return false;
@@ -95,7 +97,7 @@ void Game::render() {
 void Game::update() {
   // Циклически перебираем кадры от 0 до 5.
   current_frame_ = int((SDL_GetTicks() / 100) % 6);
-  player_.update();
+  player_.update(map_);
 }
 
 void Game::handle_events() {
