@@ -1,3 +1,8 @@
+/**
+ * @file input_handler.cpp
+ * @brief Реализация методов класса InputHandler.
+ */
+
 #include "input_handler.hpp"
 
 InputHandler* InputHandler::instance_ = 0;

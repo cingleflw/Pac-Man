@@ -106,6 +106,9 @@ class Game {
   /// Номер текущего кадра анимации.
   int current_frame_ = 0;
 
+  /// Экземпляр класса GameMap.
   GameMap map_;
+
+  /// Экземпляр класса Player.
   Player player_;
 };

@@ -13,6 +13,7 @@ Player::Player(float x, float y, float w, float h,
       current_row_ = 1;
     }
 
+// Проверяет являются ли заданные направления противоположными
 bool is_opposite(Direction a, Direction b){
   return ((a == Direction::Left) && (b == Direction::Right)) || 
   ((a == Direction::Right) && (b == Direction::Left)) ||
@@ -24,6 +25,7 @@ void Player::update(GameMap& map) {
   const int tile_size = map.get_tile_size();
   int x;
   int y;
+  // Обрабатывает изменения направления игрока при вводе.
   if ((desired_direction_ != Direction::None) && 
   (desired_direction_ != current_direction_)){
     if (is_opposite(desired_direction_, current_direction_)) {
@@ -60,6 +62,7 @@ void Player::update(GameMap& map) {
       }
     } 
   }
+  // Обрабатывает движение игрока в текущем направлении.
   if ((current_direction_ != Direction::None) &&
    (static_cast<int>(x_) % tile_size == 0) &&
     (static_cast<int>(y_) % tile_size == 0)){
@@ -98,6 +101,7 @@ void Player::update(GameMap& map) {
         }
       }
     }
+    // Обновляет координаты игрока.
     if (current_direction_ != Direction::None){
       switch(current_direction_){
         case Direction::Left:
@@ -125,6 +129,7 @@ void Player::update(GameMap& map) {
       y_ += y * speed_;
       teleport();
     }
+    // Обновляет текущий кадр анимации движения.
     switch(current_direction_){
       case Direction::Right:
         current_row_ = 1;
