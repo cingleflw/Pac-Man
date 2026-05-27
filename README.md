@@ -27,6 +27,7 @@
 - **SDL3** и **SDL3_image**
 
 Команды для установки в терминале MSYS2 UCRT64:
+
 ```bash
 pacman -Syu #обновление системы пакетов
 pacman -S make
@@ -34,6 +35,7 @@ pacman -S mingw-w64-ucrt-x86_64-gcc
 pacman -S mingw-w64-ucrt-x86_64-sdl3
 pacman -S mingw-w64-ucrt-x86_64-sdl3-image
 ```
+
 Добавьте `C:\msys64\ucrt64\bin\` в системную переменную `PATH`.
 
 ## Сборка и запуск
@@ -64,7 +66,14 @@ make all
 
 ## Генерация документации
 
-Проект использует Doxygen для автоматической генерации документации из комментариев в коде. Выполните команду `make docs`. Откройте файл `index.html` в браузере для просмотра.
+Установка Doxygen и Graphviz для MSYS2 UCRT64:
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-doxygen
+pacman -S mingw-w64-ucrt-x86_64-graphviz
+```
+
+Проект использует Doxygen для автоматической генерации документации из комментариев в коде. Выполните команду `make docs`. Откройте файл `index.html` из папки `docs` в браузере для просмотра. Выполните команду `make clean-docs` для удаления папки с документацией.
 
 ## Авторы
 
