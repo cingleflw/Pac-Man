@@ -301,3 +301,13 @@ void GameMap::render(SDL_Renderer* renderer) {
     }
   }
 }
+
+void GameMap::eating_dot(int col, int row, Player& player){
+  if (get_tile(col, row) == TileType::Dot) {
+    set_tile(col, row, TileType::Empty);
+  }
+  else if (get_tile(col, row) == TileType::Energizer){
+    set_tile(col, row, TileType::Empty);
+    player.is_energizer();
+  }
+}

@@ -26,6 +26,9 @@ public:
    */
   GameObject(float x, float y, float w, float h,
              const std::string &texture_tag);
+  
+  /// @brief Пустой конструктор.
+  GameObject() {};
 
   /// Виртуальный деструктор.
   virtual ~GameObject() = default;
@@ -34,7 +37,10 @@ public:
   virtual void render(SDL_Renderer *renderer);
 
   /// Обновление логики (движение и т.д.).
-  virtual void update(float delta_time);
+  virtual void update();
+  
+  /// @brief Очищает состояние экземпляра
+  virtual void clean();
 
   // Геттеры.
   /// Возвращает координату X.
@@ -74,4 +80,6 @@ protected:
   float w_ = 0.0f;          ///< Ширина объекта в пикселях
   float h_ = 0.0f;          ///< Высота объекта в пикселях
   std::string texture_tag_; ///< Тег текстуры для отрисовки
+  int current_row_;         /// Номер текущей строки анимации
+  int current_frame_;       /// Номер текущего кадра анимации
 };

@@ -14,6 +14,10 @@
 
 #include <string>
 #include <vector>
+#include "player.hpp"
+
+/// @brief класс игрока (Pac-man).
+class Player;
 
 /**
  * @brief Типы тайлов игрового поля.
@@ -21,6 +25,7 @@
  * Числовые значения соответствуют символам в файле карты и
  * индексам кадров в первой строке тайлсета.
  */
+
 enum class TileType : int {
   Empty = 0,      // Пустой коридор.
   Wall = 1,       // Стена.
@@ -210,6 +215,19 @@ class GameMap {
    * @return Нормализованные координаты.
    */
   GridPos normalize_position(int col, int row) const;
+
+  /**
+   * @brief Обрабатывает логику поедание точек.
+   * 
+   * При поедание любой точки текущая ячейка заменяется на пустую.
+   * Если съедена большая то, у Pac-man'a включается режим 
+   * энерджайзера на некоторое время.
+   * 
+   * @param[in] col Индекс столбца.
+   * @param[in] row Индекс строки.
+   * @param player  Ссылка на экземпляр Player.
+   */
+  void eating_dot(int col, int row, Player& player);
 
  private:
   std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
