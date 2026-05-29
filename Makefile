@@ -2,6 +2,7 @@ CXX       := g++
 CXX_FLAGS := -std=c++20
 
 BIN     := bin
+DOCS    := docs
 SRC     := .
 INCLUDE := .
 
@@ -28,5 +29,8 @@ $(BIN)/$(EXECUTABLE): $(SRC)/*.cpp | $(BIN)
 clean:
 	rm -rf $(BIN)
 
-docs:
+docs: $(SRC)/*.cpp
 	doxygen Doxyfile
+
+clean-docs:
+	rm -rf $(DOCS)
