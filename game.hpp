@@ -8,29 +8,59 @@
  */
 
 #pragma once
-
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
 #include <string>
+#include <vector>
 
+#include "boost_manager.hpp"
 #include "game_map.hpp"
+#include "ghost_controller.hpp"
 #include "player.hpp"
+#include "scare_trigger.hpp"
+
+/**
+ * @brief Режим игры.
+ *
+ * Скример - временный режим, перехватывающий отрисовку и ввод.
+ * Игровой режим вынесен в автомат состояний отдельно от флага жизни цикла
+ * running_.
+ */
+enum class GameState {
+  Playing,  ///< Активная игра.
+  Scare,    ///< Идёт скример.
+  Dead,     ///< Игрок пойман.
+  Win,      ///< Уровень пройден.
+  Paused,   ///< Пауза.
+  Ready,    ///< Готов к Playing.
+};
+
+/**
+ * @brief Настройка доступности (скримеров).
+ *
+ * Включены On или выключены Off.
+ */
+enum class ScareSetting {
+  On,   ///< Скримеры включены.
+  Off,  ///< Скримеры отключены.
+};
 
 /**
  * @brief Основной класс игры, управляющий её жизненным циклом.
  *
- * Класс Game отвечает за создание окна SDL, управление отрисовщиком,
- * обработку пользовательского ввода и выполнение игрового цикла.
- * Типичный порядок использования: init() -> start_game() -> цикл
- * (handle_events -> update -> render) -> clean().
+ * Реализует ScareTrigger и GhostController. Бусты запрашивают скример через
+ * метод request_scare(), не зная, как тот рисуется. Класс Game отвечает за
+ * создание окна SDL, управление отрисовщиком, обработку пользовательского ввода
+ * и выполнение игрового цикла. Типичный порядок использования: init() ->
+ * start_game() -> цикл (handle_events -> update -> render) -> clean().
  *
  * @note Экземпляр Game владеет окном и отрисовщиком. Метод clean()
  * должен быть вызван перед завершением программы.
  */
-class Game {
+class Game : public ScareTrigger {
  public:
-  Game() {}
+  Game() : boost_manager_(player_, map_) {}
 
   /// Деструктор. @warning Не вызывает clean() автоматически.
   ~Game() {}
@@ -93,9 +123,27 @@ class Game {
    */
   bool is_running() { return running_; }
 
+  /**
+   * @brief Реализация ScareTrigger: запрос скримера от любой системы.
+   *
+   * Запрос учитывает кулдаун между скримерами, щит игрока (поглощает испуг)
+   * и настройку интенсивности. После показа игра возвращается в состояние
+   * Playing.
+   *
+   * @param[in] texture_tag Тег текстуры скримера.
+   * @param[in] duration Длительность показа в миллисекундах.
+   */
+  void request_scare(const std::string& texture_tag, Uint64 duration) override;
+
  private:
+  /// @brief Рисует полноэкранный скример поверх игры.
+  void render_scare();
+
   /// Флаг: запущена ли игра.
   bool running_ = false;
+
+  /// Текущий режим игры.
+  GameState state_ = GameState::Playing;
 
   /// Указатель на окно.
   SDL_Window* window_ = nullptr;
@@ -105,7 +153,18 @@ class Game {
 
   /// Экземпляр класса GameMap.
   GameMap map_;
-
   /// Экземпляр класса Player.
   Player player_;
+
+  /// Менеджер бустов.
+  BoostManager boost_manager_;
+
+  // Состояние скримера
+  ScareSetting scare_setting_ = ScareSetting::On;  ///< Настройка доступности.
+  std::string scare_tag_;        ///< Текстура текущего скримера.
+  Uint64 scare_start_time_ = 0;  ///< Когда начался скример.
+  Uint64 scare_duration_ = 0;    ///< Сколько длится скример.
+  Uint64 last_scare_end_time_ =
+      0;  ///< Когда закончился прошлый скример (для кулдауна).
+  Uint64 ready_until_ = 0;
 };
