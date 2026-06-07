@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <SDL3/SDL.h>
+
 #include <vector>
 
 #include "game_map.hpp"
@@ -13,6 +15,9 @@
 /// @brief Левая и правая граница хода игрока.
 const float LEFT_X_BORDER = 1.19;
 const float RIGHT_X_BORDER = 864;
+
+/// @brief Базовая скорость игрока в пикселях за тик.
+const float DEFAULT_SPEED = 0.3f;
 
 /// @brief Игровое поле.
 class GameMap;
@@ -60,7 +65,7 @@ class Player : public GameObject {
   void set_desired_direction(Direction d);
 
   /// @brief Возвращает скорость игрока.
-  float get_speed();
+  float get_speed() const;
 
   /// @brief Активирует режим энерджайзера у Pac-man'a.
   void is_energizer();
@@ -71,15 +76,24 @@ class Player : public GameObject {
   /// @brief Возвращает текущий счёт.
   int get_score() const { return score_; }
 
+  /// @brief Возвращает текущее направление движения игрока.
+  Direction get_direction() const { return current_direction_; }
+
+  /// @brief true, если активен режим энерджайзера.
+  bool is_energized() const { return SDL_GetTicks() < energizer_expires_; }
+
+  /// @brief Текущая скорость.
+  float current_speed() const;
+
  private:
   Direction current_direction_ = Direction::None;  /// Текущее направление
   Direction desired_direction_ = Direction::None;  /// Желаемое направление
 
-  float speed_ = 0.3f;  ///< Скорость в пикселях в секунду
-  int dir_x_ = 0;       ///< Направление по X: -1 (влево), 0, 1 (вправо)
-  int dir_y_ = 0;       ///< Направление по Y: -1 (вверх), 0, 1 (вниз)
+  Uint64 energizer_expires_ = 0;  ///< Время окончания энерджайзера в
+                                  ///< миллисекундах (0 значит не действует)
 
-  int energizer_time_ = 0;  /// Время действия режима энерджайзера
+  int dir_x_ = 0;  ///< Направление по X: -1 (влево), 0, 1 (вправо)
+  int dir_y_ = 0;  ///< Направление по Y: -1 (вверх), 0, 1 (вниз)
 
   int score_ = 0;  ///< Счёт игрока
 };
