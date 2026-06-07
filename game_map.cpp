@@ -318,7 +318,7 @@ void GameMap::eating_dot(int col, int row, Player& player) {
   } else if (get_tile(col, row) == TileType::Energizer) {
     set_tile(col, row, TileType::Empty);
     player.add_score(ENERGIZER_SCORE);
-    player.is_energizer();
+    player.activate_energizer();
   }
 }
 

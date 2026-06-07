@@ -167,8 +167,47 @@ void Player::set_desired_direction(Direction d) { desired_direction_ = d; }
 
 float Player::get_speed() const { return current_speed(); }
 
-void Player::is_energizer() {
+void Player::activate_energizer() {
   energizer_expires_ = SDL_GetTicks() + ENERGIZER_DURATION;
 }
 
-float Player::current_speed() const { return DEFAULT_SPEED; }
+void Player::apply_speed_boost(float multiplier, Uint64 duration) {
+  speed_boost_mult_ = multiplier;
+  speed_boost_expires_ = SDL_GetTicks() + duration;
+}
+
+float Player::current_speed() const {
+  const Uint64 now = SDL_GetTicks();
+  float mult = 1.0f;  // Базовый множитель.
+
+  if (now < energizer_expires_) {
+    mult = std::max(mult, ENERGIZER_SPEED_MULT);
+  }
+
+  if (now < speed_boost_expires_) {
+    mult = std::max(mult, speed_boost_mult_);
+  }
+
+  return DEFAULT_SPEED * mult;  // Эффекты кончились.
+}
+
+bool Player::consume_shield() {
+  if (has_shield_) {
+    has_shield_ = false;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void Player::reset_to_spawn(float x, float y) {
+  set_position(x, y);
+  current_direction_ = Direction::None;
+  desired_direction_ = Direction::None;
+  energizer_expires_ = 0;
+  speed_boost_expires_ = 0;
+  speed_boost_mult_ = 1.0f;
+  has_shield_ = false;
+  current_row_ = 1;
+  current_frame_ = 0;
+}

@@ -49,14 +49,14 @@ class BoostManager {
    * SPAWN_INTERVAL_MS после вызова.
    *
    * @param[in] boost_texture_tag Тег спрайтлиста бустов в TextureManager.
-   * @pre карта уже загружена.
+   * @pre Карта уже загружена.
    */
   void init(const std::string& boost_texture_tag);
 
   /// @brief Подключает реализацию призраков (вызывает команда призраков).
   void set_ghost_controller(GhostController* ghosts) { ghosts_ = ghosts; }
 
-  /// @brief Подключает приёмник скримеров (Game).
+  /// @brief Подключает реализацию скримеров (Game).
   void set_scare_trigger(ScareTrigger* scare) { scare_ = scare; }
 
   /**
