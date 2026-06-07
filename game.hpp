@@ -103,9 +103,6 @@ class Game {
   /// Указатель на отрисовщик.
   SDL_Renderer* renderer_ = nullptr;
 
-  /// Номер текущего кадра анимации.
-  int current_frame_ = 0;
-
   /// Экземпляр класса GameMap.
   GameMap map_;
 

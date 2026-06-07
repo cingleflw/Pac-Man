@@ -7,9 +7,8 @@
 
 #include <iostream>
 
-#include "texture_manager.hpp"
-
 #include "input_handler.hpp"
+#include "texture_manager.hpp"
 
 // SDL требует, чтобы main имел именно такую сигнатуру.
 int main(int argv, char** argc) {
@@ -94,11 +93,7 @@ void Game::render() {
   SDL_RenderPresent(renderer_);  // Выводим на экран текущее состояние.
 }
 
-void Game::update() {
-  // Циклически перебираем кадры от 0 до 5.
-  current_frame_ = int((SDL_GetTicks() / 100) % 6);
-  player_.update(map_);
-}
+void Game::update() { player_.update(map_); }
 
 void Game::handle_events() {
   SDL_Event event;  // Структура для хранения текущего события.
@@ -118,8 +113,10 @@ void Game::handle_events() {
         break;
       case SDL_EVENT_KEY_DOWN:
       case SDL_EVENT_KEY_UP:
-        if (map_.is_cleared()) { stop_game(); }
-        InputHandler::Instance(player_, map_)->handle(event);
+        if (map_.is_cleared()) {
+          stop_game();
+        }
+        InputHandler::Instance(player_, map_).handle(event);
         break;
     }
   }
@@ -129,6 +126,7 @@ void Game::clean() {
   // Порядок, обратный созданию.
   std::cout << "exit" << std::endl;
   player_.clean();
+  TextureManager::instance().clean();  // Текстуры до renderer'а.
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();
