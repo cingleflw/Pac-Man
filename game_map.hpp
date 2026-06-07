@@ -14,6 +14,7 @@
 
 #include <string>
 #include <vector>
+
 #include "player.hpp"
 
 /// @brief класс игрока (Pac-man).
@@ -218,26 +219,30 @@ class GameMap {
 
   /**
    * @brief Обрабатывает логику поедание точек.
-   * 
+   *
    * При поедание любой точки текущая ячейка заменяется на пустую.
-   * Если съедена большая то, у Pac-man'a включается режим 
+   * Если съедена большая то, у Pac-man'a включается режим
    * энерджайзера на некоторое время.
-   * 
+   *
    * @param[in] col Индекс столбца.
    * @param[in] row Индекс строки.
    * @param player  Ссылка на экземпляр Player.
    */
   void eating_dot(int col, int row, Player& player);
 
+  /// @brief Открывает дверь дома призраков для игрока (буст Key).
+  void open_ghost_door();
+
  private:
-  std::vector<std::vector<TileType>> data_;    // Двумерная сетка тайлов.
-  int cols_ = 0;                               // Столбцы.
-  int rows_ = 0;                               // Строки.
-  int tile_size_ = 0;                          // Пикселей на тайл.
-  int dots_remaining_ = 0;                     // Осталось точек.
-  GridPos pacman_spawn_ = {};                  // Коордиаты спауна игрока.
-  std::vector<GhostSpawn> ghost_spawns_ = {};  // Координаты спауна призраков.
-  std::string tileset_tag_;                    // Тег текстуры тайлсета.
+  std::vector<std::vector<TileType>> data_;    ///< Двумерная сетка тайлов.
+  int cols_ = 0;                               ///< Столбцы.
+  int rows_ = 0;                               ///< Строки.
+  int tile_size_ = 0;                          ///< Пикселей на тайл.
+  int dots_remaining_ = 0;                     ///< Осталось точек.
+  GridPos pacman_spawn_ = {};                  ///< Коордиаты спауна игрока.
+  std::vector<GhostSpawn> ghost_spawns_ = {};  ///< Координаты спауна призраков.
+  std::string tileset_tag_;                    ///< Тег текстуры тайлсета.
+  bool is_door_open_ = false;                  ///< Открыта ли дверь игроку.
 
   /// @brief Выбирает номер спрайта для одного угла тайла стены.
   int compute_corner_frame(int col, int row, Corner corner) const;
