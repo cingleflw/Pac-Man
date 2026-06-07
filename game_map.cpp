@@ -5,6 +5,9 @@
 
 #include "texture_manager.hpp"
 
+constexpr int DOT_SCORE = 10;        ///< Очков за точку.
+constexpr int ENERGIZER_SCORE = 50;  ///< Очков за таблетку.
+
 bool GameMap::load_from_file(const std::string& path,
                              const std::string& tileset_tag, int tile_size) {
   std::ifstream file(path);
@@ -155,7 +158,13 @@ void GameMap::set_tile(int col, int row, TileType type) {
 
 bool GameMap::is_walkable_by_player(int col, int row) const {
   TileType tile = get_tile(col, row);
-  return tile != TileType::Wall && tile != TileType::GhostDoor;
+  if (tile == TileType::Wall) {
+    return false;
+  }
+  if (tile == TileType::GhostDoor) {
+    return is_door_open_;  // Открыта только после подбора Key.
+  }
+  return true;
 }
 
 bool GameMap::is_walkable_by_ghost(int col, int row) const {
@@ -302,12 +311,15 @@ void GameMap::render(SDL_Renderer* renderer) {
   }
 }
 
-void GameMap::eating_dot(int col, int row, Player& player){
+void GameMap::eating_dot(int col, int row, Player& player) {
   if (get_tile(col, row) == TileType::Dot) {
     set_tile(col, row, TileType::Empty);
-  }
-  else if (get_tile(col, row) == TileType::Energizer){
+    player.add_score(DOT_SCORE);
+  } else if (get_tile(col, row) == TileType::Energizer) {
     set_tile(col, row, TileType::Empty);
-    player.is_energizer();
+    player.add_score(ENERGIZER_SCORE);
+    player.activate_energizer();
   }
 }
+
+void GameMap::open_ghost_door() { is_door_open_ = true; }

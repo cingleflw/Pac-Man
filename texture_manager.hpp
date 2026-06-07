@@ -96,4 +96,12 @@ class TextureManager {
     static TextureManager instance_;
     return instance_;
   }
+
+  /// @brief Уничтожает все загруженные текстуры.
+  void clean() {
+    for (auto& [tag, texture] : texture_map_) {
+      if (texture) SDL_DestroyTexture(texture);
+    }
+    texture_map_.clear();
+  }
 };
