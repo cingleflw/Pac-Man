@@ -16,9 +16,12 @@
 
 #include "boost_manager.hpp"
 #include "game_map.hpp"
+#include "ghost.hpp"
 #include "ghost_controller.hpp"
 #include "player.hpp"
 #include "scare_trigger.hpp"
+
+constexpr int START_LIVES = 3;  ///< Жизней в начале игры.
 
 /**
  * @brief Режим игры.
@@ -58,7 +61,7 @@ enum class ScareSetting {
  * @note Экземпляр Game владеет окном и отрисовщиком. Метод clean()
  * должен быть вызван перед завершением программы.
  */
-class Game : public ScareTrigger {
+class Game : public ScareTrigger, public GhostController {
  public:
   Game() : boost_manager_(player_, map_) {}
 
@@ -135,7 +138,48 @@ class Game : public ScareTrigger {
    */
   void request_scare(const std::string& texture_tag, Uint64 duration) override;
 
+  // --- Реализация GhostController: передаём эффекты всем призракам ---
+
+  /// @brief Останавливает всех призраков на duration мс (Bell).
+  void freeze(Uint64 duration_ms) override {
+    for (Ghost* g : ghosts_) g->freeze(duration_ms);
+  }
+
+  /// @brief Ослепляет призраков: случайное движение, но они опасны (Potion).
+  void confuse(Uint64 duration_ms) override {
+    for (Ghost* g : ghosts_) g->confuse(duration_ms);
+  }
+
+  /// @brief Съедобный режим. @note Длительностью испуга в текущей версии
+  /// управляет синхронизация с энерджайзером в update_ghost_mode(); ни один
+  /// буст этот метод не вызывает: он реализован лишь ради интерфейса.
+  void frighten(Uint64 duration_ms) override {
+    (void)duration_ms;
+    for (Ghost* g : ghosts_) g->frighten();
+  }
+
+  /// @brief Мгновенно отправляет всех домой «глазами» (Wand).
+  void banish_all() override {
+    for (Ghost* g : ghosts_) g->get_eaten();
+  }
+
+  /// @brief Временно ускоряет призраков (неудачный исход Surprise box).
+  void enrage(Uint64 duration_ms) override {
+    for (Ghost* g : ghosts_) g->enrage(duration_ms);
+  }
+
+  void lose_life();
+
  private:
+  /// @brief Создаёт (или пересоздаёт) призраков из спаунов карты.
+  void spawn_ghosts(int tile_size);
+
+  /// @brief Двигает таймер фаз Scatter/Chase и синхронизирует испуг.
+  void update_ghost_mode();
+
+  /// @brief Проверяет столкновение Pac-Man с призраками.
+  void check_ghost_collisions();
+
   /// @brief Рисует полноэкранный скример поверх игры.
   void render_scare();
 
@@ -166,5 +210,22 @@ class Game : public ScareTrigger {
   Uint64 scare_duration_ = 0;    ///< Сколько длится скример.
   Uint64 last_scare_end_time_ =
       0;  ///< Когда закончился прошлый скример (для кулдауна).
+
+  // --- Призраки ---
+  Blinky blinky_;  ///< Красный.
+  Pinky pinky_;    ///< Розовый.
+  Inky inky_;      ///< Голубой.
+  Clyde clyde_;    ///< Оранжевый.
+
+  /// Указатели на всех призраков - для единообразного обхода в циклах.
+  std::vector<Ghost*> ghosts_;
+
+  // --- Таймер фаз Scatter/Chase ---
+  int phase_index_ = 0;            ///< Индекс текущей фазы в расписании.
+  Uint64 phase_start_ms_ = 0;      ///< Время начала текущей фазы.
+  Uint64 fright_pause_start_ = 0;  ///< Момент «заморозки» таймера на испуг.
+  bool was_energized_ = false;  ///< Был ли активен энерджайзер в прошлом кадре.
+
+  int lives_ = START_LIVES;
   Uint64 ready_until_ = 0;
 };

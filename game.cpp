@@ -16,6 +16,22 @@ constexpr Uint64 FLASH_DURATION =
     160;  ///< Длительность вспышки в начале скримера в миллисекундах.
 constexpr int SHAKE_PX = 8;  ///< Амплитуда тряски экрана.
 
+/// @brief Одна фаза глобального таймера призраков.
+struct Phase {
+  GhostMode mode;
+  Uint64 duration_ms;
+};
+
+/// @brief Расписание Scatter/Chase. Последняя фаза - Chase навсегда.
+const Phase kSchedule[] = {
+    {GhostMode::Scatter, 7000}, {GhostMode::Chase, 20000},
+    {GhostMode::Scatter, 7000}, {GhostMode::Chase, 20000},
+    {GhostMode::Scatter, 5000}, {GhostMode::Chase, 20000},
+    {GhostMode::Scatter, 5000}, {GhostMode::Chase, 0},
+};
+const int kScheduleLen =
+    static_cast<int>(sizeof(kSchedule) / sizeof(kSchedule[0]));
+
 // SDL требует, чтобы main имел именно такую сигнатуру.
 int main(int argc, char** argv) {
   Game g;
@@ -101,7 +117,50 @@ bool Game::init(std::string title, int w, int h, int flags) {
   boost_manager_.set_scare_trigger(this);
   // boost_manager_.set_ghost_controller(this);
 
+  // Текстуры призраков. Их отсутствие НЕ фатально: игра запустится,
+  // призраки просто не нарисуются, пока не подложишь ассеты.
+  auto load_ghost = [&](const char* path, const char* tag) {
+    if (!TextureManager::instance().load(path, tag, renderer_)) {
+      std::cerr << "ghost texture missing: " << tag << std::endl;
+    }
+  };
+  load_ghost("assets/blinky.png", "blinky");
+  load_ghost("assets/pinky.png", "pinky");
+  load_ghost("assets/inky.png", "inky");
+  load_ghost("assets/clyde.png", "clyde");
+  load_ghost("assets/ghost_frightened.png", "ghost_frightened");
+  load_ghost("assets/ghost_eyes.png", "ghost_eyes");
+
+  // Создаём призраков и заводим фазовый таймер.
+  spawn_ghosts(map_.get_tile_size());
+  ghosts_ = {&blinky_, &pinky_, &inky_, &clyde_};
+  phase_start_ms_ = SDL_GetTicks();
+  for (Ghost* g : ghosts_) g->set_mode(kSchedule[0].mode);
+
   return true;
+}
+
+void Game::spawn_ghosts(int tile_size) {
+  // Каждому id соответствует свой подкласс и свой тег текстуры.
+  for (const GhostSpawn& s : map_.get_ghost_spawns()) {
+    float gx = map_.tile_to_pixel(s.position.col);
+    float gy = map_.tile_to_pixel(s.position.row);
+    float size = static_cast<float>(tile_size);
+    switch (s.id) {
+      case GhostId::Blinky:
+        blinky_ = Blinky(gx, gy, size, size, "blinky", tile_size);
+        break;
+      case GhostId::Pinky:
+        pinky_ = Pinky(gx, gy, size, size, "pinky", tile_size);
+        break;
+      case GhostId::Inky:
+        inky_ = Inky(gx, gy, size, size, "inky", tile_size);
+        break;
+      case GhostId::Clyde:
+        clyde_ = Clyde(gx, gy, size, size, "clyde", tile_size);
+        break;
+    }
+  }
 }
 
 void Game::render() {
@@ -112,6 +171,7 @@ void Game::render() {
   map_.render(renderer_);
   boost_manager_.render(renderer_);
   player_.render(renderer_);
+  for (Ghost* g : ghosts_) g->render(renderer_);
 
   if (state_ == GameState::Scare) {
     render_scare();
@@ -155,6 +215,14 @@ void Game::update() {
       player_.update(map_);
       boost_manager_.update();
 
+      update_ghost_mode();
+
+      // Inky нужна позиция Blinky, поэтому передаём его всем явным
+      // аргументом.
+      for (Ghost* g : ghosts_) g->update(map_, player_, blinky_);
+
+      check_ghost_collisions();
+
       if (map_.is_cleared()) {
         state_ = GameState::Win;
       }
@@ -175,9 +243,61 @@ void Game::update() {
 
     case GameState::Ready:
       if (SDL_GetTicks() >= ready_until_) {
+        phase_start_ms_ = SDL_GetTicks();  // не теряем ~2с первой фазы
         state_ = GameState::Playing;
       }
       break;
+  }
+}
+
+void Game::update_ghost_mode() {
+  const Uint64 now = SDL_GetTicks();
+  const bool energized = player_.is_energized();
+
+  // Фронт включения энерджайзера: пугаем всех и замораживаем фазовый таймер.
+  if (energized && !was_energized_) {
+    for (Ghost* g : ghosts_) g->frighten();
+    fright_pause_start_ = now;
+  }
+  // Фронт окончания: сдвигаем старт фазы на длительность испуга и
+  // возвращаем призраков в текущую фазу расписания.
+  else if (!energized && was_energized_) {
+    phase_start_ms_ += (now - fright_pause_start_);
+    for (Ghost* g : ghosts_) g->set_mode(kSchedule[phase_index_].mode);
+  }
+  was_energized_ = energized;
+
+  // Во время испуга расписание Scatter/Chase «на паузе».
+  if (energized) return;
+
+  // Переход к следующей фазе по таймеру (последняя фаза длится вечно).
+  if (phase_index_ + 1 < kScheduleLen &&
+      now - phase_start_ms_ >= kSchedule[phase_index_].duration_ms) {
+    phase_index_++;
+    phase_start_ms_ = now;
+    for (Ghost* g : ghosts_) g->set_mode(kSchedule[phase_index_].mode);
+  }
+}
+
+constexpr int GHOST_EAT_SCORE = 200;
+
+void Game::check_ghost_collisions() {
+  const float px = player_.get_x(), py = player_.get_y();
+  const float pw = player_.get_w(), ph = player_.get_h();
+  constexpr float PAD = 8.0f;  // чтобы не ловить касание уголками
+  for (Ghost* g : ghosts_) {
+    if (g->get_mode() == GhostMode::Eaten) continue;
+    const bool hit =
+        px < g->get_x() + g->get_w() - PAD && px + pw - PAD > g->get_x() &&
+        py < g->get_y() + g->get_h() - PAD && py + ph - PAD > g->get_y();
+    if (!hit) continue;
+    if (g->is_frightened()) {
+      player_.add_score(GHOST_EAT_SCORE);
+      g->get_eaten();
+    } else {
+      lose_life();
+      return;
+    }
   }
 }
 
@@ -244,9 +364,17 @@ void Game::handle_events() {
   }
 }
 
+void Game::lose_life() {
+  if (--lives_ <= 0) {
+    state_ = GameState::Dead;
+    return;
+  }
+}
+
 void Game::clean() {
   // Порядок, обратный созданию.
   std::cout << "exit" << std::endl;
+  for (Ghost* g : ghosts_) g->clean();
   player_.clean();
   TextureManager::instance().clean();  // Текстуры до renderer'а.
   SDL_DestroyRenderer(renderer_);
