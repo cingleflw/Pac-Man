@@ -113,26 +113,42 @@ bool Game::init(std::string title, int w, int h, int flags) {
   }
 
   if (!TextureManager::instance().load("assets/digits.png", "digits",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "digits texture warning" << std::endl;
+  }
   if (!TextureManager::instance().load("assets/ready.png", "ready_text",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "ready_text warning" << std::endl;
+  }
   if (!TextureManager::instance().load("assets/gameover.png", "gameover_text",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "gameover_text warning" << std::endl;
-  if (!TextureManager::instance().load("assets/win.png", "win_text", renderer_))
+  }
+  if (!TextureManager::instance().load("assets/win.png", "win_text",
+                                       renderer_)) {
     std::cerr << "win_text warning" << std::endl;
+  }
+  if (!TextureManager::instance().load("assets/paused.png", "paused_text",
+                                       renderer_)) {
+    std::cerr << "paused_text warning" << std::endl;
+  }
+  if (!TextureManager::instance().load("assets/help.png", "help_text",
+                                       renderer_)) {
+    std::cerr << "help_text texture warning" << std::endl;
+  }
 
   if (!TextureManager::instance().load("assets/scare_label.png", "scare_label",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "scare_label texture warning" << std::endl;
+  }
   if (!TextureManager::instance().load("assets/check_on.png", "check_on",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "check_on texture warning" << std::endl;
+  }
   if (!TextureManager::instance().load("assets/check_off.png", "check_off",
-                                       renderer_))
+                                       renderer_)) {
     std::cerr << "check_off texture warning" << std::endl;
+  }
 
   // Готовим бусты и подключаем реализацию интерфейсов для скримеров и эффектов
   // призраков.
@@ -215,6 +231,15 @@ void Game::render() {
   if (state_ == GameState::Dead) {
     draw_centered("gameover_text", maze_w, maze_h);
   }
+  if (state_ == GameState::Paused) {
+    draw_centered("paused_text", maze_w, maze_h);
+  }
+  if (state_ == GameState::Help) {
+    constexpr float help_w = 640, help_h = 480;
+    TextureManager::instance().draw("help_text", (maze_w - help_w) / 2.0f,
+                                    (maze_h - help_h) / 2.0f, help_w, help_h,
+                                    renderer_);
+  }
 
   SDL_SetRenderViewport(renderer_, nullptr);  // Обратно на всё окно.
   render_hud();                               // Рисуется уже без сдвига.
@@ -288,6 +313,7 @@ void Game::update() {
     case GameState::Win:
     case GameState::Dead:
     case GameState::Paused:
+    case GameState::Help:
       // Ждём действия игрока в handle_events().
       break;
 
@@ -429,6 +455,15 @@ void Game::handle_events() {
             // Циклически переключаем настройку скримеров.
             scare_setting_ = static_cast<ScareSetting>(
                 (static_cast<int>(scare_setting_) + 1) % 2);
+            break;
+          }
+          if (event.key.scancode == SDL_SCANCODE_H) {
+            if (state_ == GameState::Help) {
+              state_ = GameState::Playing;
+            } else if (state_ == GameState::Playing ||
+                       state_ == GameState::Paused) {
+              state_ = GameState::Help;
+            }
             break;
           }
         }

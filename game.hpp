@@ -38,6 +38,7 @@ enum class GameState {
   Win,      ///< Уровень пройден.
   Paused,   ///< Пауза.
   Ready,    ///< Готов к Playing.
+  Help,     ///< Экран справки по управлению.
 };
 
 /**
