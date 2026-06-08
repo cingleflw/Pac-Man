@@ -21,12 +21,44 @@
 
 Для сборки проекта необходимо, чтобы в системе были установлены:
 
-- **CMake 3.24+**
-- Компилятор с поддержкой **C++20**
+- Bash-совместимый терминал (например, [**MSYS2**](https://www.msys2.org/))
+- Компилятор с поддержкой C++20 (например, **GCC 13+**)
+- **GNU Make**
+- **SDL3** и **SDL3_image**
+
+Команды для установки в терминале MSYS2 UCRT64:
+
+```bash
+pacman -Syu #обновление системы пакетов
+pacman -S make
+pacman -S mingw-w64-ucrt-x86_64-gcc
+pacman -S mingw-w64-ucrt-x86_64-sdl3
+pacman -S mingw-w64-ucrt-x86_64-sdl3-image
+```
+
+Добавьте `C:\msys64\ucrt64\bin\` в системную переменную `PATH`.
 
 ## Сборка и запуск
 
-<!-- Сборка и запуск -->
+Все команды сборки запускаются из терминала Bash (**MSYS2 UCRT64**), потому что Makefile проекта использует Unix команды.
+
+Склонируйте репозиторий и перейдите в его папку:
+
+```bash
+cd /d/your/path/
+git clone https://github.com/cingleflw/Pac-Man.git
+cd Pac-Man
+```
+
+Запустите сборку:
+
+```bash
+make all
+```
+
+После успешной сборки в папке `bin` появятся исполняемый файл `game.exe` и скопированные ассеты.
+
+Запуск с помощью файла `game.exe` (двойной клик) или `make run` из терминала.
 
 ## Структура проекта
 
@@ -34,7 +66,14 @@
 
 ## Генерация документации
 
-Проект использует Doxygen для автоматической генерации документации из комментариев в коде. Откройте файл `index.html` в браузере для просмотра.
+Установка Doxygen и Graphviz для MSYS2 UCRT64:
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-doxygen
+pacman -S mingw-w64-ucrt-x86_64-graphviz
+```
+
+Проект использует Doxygen для автоматической генерации документации из комментариев в коде. Выполните команду `make docs`. Откройте файл `index.html` из папки `docs` в браузере для просмотра. Выполните команду `make clean-docs` для удаления папки с документацией.
 
 ## Авторы
 
@@ -42,7 +81,7 @@
 | ----------------------------------------------------------- |
 | [qazwsxill](https://github.com/qazwsxill)                   |
 | [cingleflw](https://github.com/cingleflw)                   |
-| [mochalow](https://github.com/mochalow)                    |
+| [mochalow](https://github.com/mochalow)                     |
 | [dasanauhackaa-cell](https://github.com/dasanauhackaa-cell) |
 
 ## Лицензия
