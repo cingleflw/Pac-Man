@@ -10,11 +10,9 @@
 #include "input_handler.hpp"
 #include "texture_manager.hpp"
 
+constexpr int HUD_HEIGHT = 64;  ///< Высота верхней панели в пикселях.
 constexpr Uint64 SCARE_COOLDOWN =
     4000;  ///< Минимум между скримерами в миллисекундах.
-constexpr Uint64 FLASH_DURATION =
-    160;  ///< Длительность вспышки в начале скримера в миллисекундах.
-constexpr int SHAKE_PX = 8;  ///< Амплитуда тряски экрана.
 
 /// @brief Одна фаза глобального таймера призраков.
 struct Phase {
@@ -36,8 +34,7 @@ const int kScheduleLen =
 int main(int argc, char** argv) {
   Game g;
 
-  if (g.init("TEST WINDOW", 896, 992,
-             SDL_WINDOW_RESIZABLE | SDL_WINDOW_MINIMIZED)) {
+  if (g.init("PAC-MAN", 896, 992 + HUD_HEIGHT, SDL_WINDOW_RESIZABLE)) {
     g.start_game();
   } else {
     return 1;  // Инициализация не удалась - выход с ошибкой.
@@ -111,11 +108,37 @@ bool Game::init(std::string title, int w, int h, int flags) {
     }
   }
 
+  if (!TextureManager::instance().load("assets/life.png", "life", renderer_)) {
+    std::cerr << "life texture warning" << std::endl;
+  }
+
+  if (!TextureManager::instance().load("assets/digits.png", "digits",
+                                       renderer_))
+    std::cerr << "digits texture warning" << std::endl;
+  if (!TextureManager::instance().load("assets/ready.png", "ready_text",
+                                       renderer_))
+    std::cerr << "ready_text warning" << std::endl;
+  if (!TextureManager::instance().load("assets/gameover.png", "gameover_text",
+                                       renderer_))
+    std::cerr << "gameover_text warning" << std::endl;
+  if (!TextureManager::instance().load("assets/win.png", "win_text", renderer_))
+    std::cerr << "win_text warning" << std::endl;
+
+  if (!TextureManager::instance().load("assets/scare_label.png", "scare_label",
+                                       renderer_))
+    std::cerr << "scare_label texture warning" << std::endl;
+  if (!TextureManager::instance().load("assets/check_on.png", "check_on",
+                                       renderer_))
+    std::cerr << "check_on texture warning" << std::endl;
+  if (!TextureManager::instance().load("assets/check_off.png", "check_off",
+                                       renderer_))
+    std::cerr << "check_off texture warning" << std::endl;
+
   // Готовим бусты и подключаем реализацию интерфейсов для скримеров и эффектов
   // призраков.
   boost_manager_.init("boosts");
   boost_manager_.set_scare_trigger(this);
-  // boost_manager_.set_ghost_controller(this);
+  boost_manager_.set_ghost_controller(this);
 
   // Текстуры призраков. Их отсутствие НЕ фатально: игра запустится,
   // призраки просто не нарисуются, пока не подложишь ассеты.
@@ -168,10 +191,33 @@ void Game::render() {
   SDL_SetRenderDrawColor(renderer_, 42, 42, 42, 255);
   SDL_RenderClear(renderer_);  // Очищаем всё, что было отрисовано ранее.
 
+  // Лабиринт и сущности рисуются в окне, сдвинутом вниз на размер HUD полосы.
+  // Отриовщики карты, игрока, призраков ничего об этом не знают.
+  const int maze_w = map_.get_cols() * map_.get_tile_size();
+  const int maze_h = map_.get_rows() * map_.get_tile_size();
+
+  // Прямоуголник maze_w на maze_h от (0; HUD_HEIGHT).
+  SDL_Rect maze_vp = {0, HUD_HEIGHT, maze_w, maze_h};
+  SDL_SetRenderViewport(renderer_, &maze_vp);
+
   map_.render(renderer_);
   boost_manager_.render(renderer_);
   player_.render(renderer_);
+
   for (Ghost* g : ghosts_) g->render(renderer_);
+
+  if (state_ == GameState::Ready) {
+    draw_centered("ready_text", maze_w, maze_h);
+  }
+  if (state_ == GameState::Win) {
+    draw_centered("win_text", maze_w, maze_h);
+  }
+  if (state_ == GameState::Dead) {
+    draw_centered("gameover_text", maze_w, maze_h);
+  }
+
+  SDL_SetRenderViewport(renderer_, nullptr);  // Обратно на всё окно.
+  render_hud();                               // Рисуется уже без сдвига.
 
   if (state_ == GameState::Scare) {
     render_scare();
@@ -181,6 +227,10 @@ void Game::render() {
 }
 
 void Game::render_scare() {
+  constexpr Uint64 FLASH_DURATION =
+      160;  ///< Длительность вспышки в начале скримера в миллисекундах.
+  constexpr int SHAKE_PX = 8;  ///< Амплитуда тряски экрана.
+
   int window_w = 0, window_h = 0;
   SDL_GetWindowSize(window_, &window_w, &window_h);
   const float w = static_cast<float>(window_w);
@@ -301,6 +351,29 @@ void Game::check_ghost_collisions() {
   }
 }
 
+void Game::respawn_entities() {
+  GridPos player_spawn = map_.get_pacman_spawn();
+  player_.reset_to_spawn(map_.tile_to_pixel(player_spawn.col),
+                         map_.tile_to_pixel(player_spawn.row));
+  spawn_ghosts(map_.get_tile_size());
+  for (Ghost* g : ghosts_) {
+    g->set_mode(kSchedule[0].mode);
+  }
+  phase_index_ = 0;
+  phase_start_ms_ = SDL_GetTicks();
+  was_energized_ = false;
+}
+
+void Game::start_new_game() {
+  map_.load_from_file("assets/levels/level_1.txt", "tileset_1");
+  boost_manager_.init("boosts");
+  lives_ = START_LIVES;
+  player_.add_score(-player_.get_score());
+  respawn_entities();
+  state_ = GameState::Ready;
+  ready_until_ = SDL_GetTicks() + READY_MS;
+}
+
 void Game::request_scare(const std::string& texture_tag, Uint64 duration) {
   const Uint64 now = SDL_GetTicks();
 
@@ -341,8 +414,16 @@ void Game::handle_events() {
       case SDL_EVENT_KEY_UP:
         // Глобальные клавиши доступны в любом режиме.
         if (event.type == SDL_EVENT_KEY_DOWN) {
+          if (event.key.scancode == SDL_SCANCODE_P) {
+            if (state_ == GameState::Playing) {
+              state_ = GameState::Paused;
+            } else if (state_ == GameState::Paused) {
+              state_ = GameState::Playing;
+            }
+            break;
+          }
           if (event.key.scancode == SDL_SCANCODE_F) {
-            // Циклически переключаем интенсивность скримеров.
+            // Циклически переключаем настройку скримеров.
             scare_setting_ = static_cast<ScareSetting>(
                 (static_cast<int>(scare_setting_) + 1) % 2);
             break;
@@ -351,8 +432,12 @@ void Game::handle_events() {
 
         // Завершающие экраны.
         if (state_ == GameState::Win || state_ == GameState::Dead) {
-          stop_game();
-          // break;
+          if (event.key.scancode == SDL_SCANCODE_RETURN) {
+            start_new_game();
+          } else if (event.key.scancode == SDL_SCANCODE_ESCAPE) {
+            stop_game();
+          }
+          break;
         }
 
         // Движение принимаем только в состоянии активной игры.
@@ -369,6 +454,62 @@ void Game::lose_life() {
     state_ = GameState::Dead;
     return;
   }
+  respawn_entities();
+  state_ = GameState::Ready;
+  ready_until_ = SDL_GetTicks() + READY_MS;
+}
+
+void Game::render_number(int value, float x, float y, int w, int h) {
+  const std::string s = std::to_string(value);
+  for (size_t i = 0; i < s.size(); i++) {
+    TextureManager::instance().draw_frame("digits", x + i * w, y, w, h, 1,
+                                          s[i] - '0', renderer_);
+  }
+}
+
+void Game::render_hud() {
+  constexpr int HUD_ICON_SIZE = 32;  ///< Сторона иконки (цифры/жизни).
+  constexpr int LIFE_ICON = 36;      ///< Расстояние между иконками жизней.
+
+  const float y = (HUD_HEIGHT - HUD_ICON_SIZE) / 2.0;  // Центр.
+
+  render_number(player_.get_score(), 16, y, HUD_ICON_SIZE, HUD_ICON_SIZE);
+
+  const int window_w = map_.get_cols() * map_.get_tile_size();
+
+  // Индикатор настройки скримеров по центру шапки.
+  constexpr int LABEL_W = 128, LABEL_H = 32;
+  constexpr int MARK = 32;  // Сторона галочки/крестика.
+  constexpr int GAP = 8;    // Расстояние между надписью и значком.
+
+  const float scare_group_w = LABEL_W + GAP + MARK;
+  const float scare_x = (window_w - scare_group_w) / 2.0;
+  const char* mark = "";
+
+  if (scare_setting_ == ScareSetting::Off) {
+    mark = "check_off";
+  } else {
+    mark = "check_on";
+  }
+
+  TextureManager::instance().draw("scare_label", scare_x, y, LABEL_W, LABEL_H,
+                                  renderer_);
+  TextureManager::instance().draw(mark, scare_x + LABEL_W + GAP, y, MARK, MARK,
+                                  renderer_);
+
+  // Жизни справа.
+  for (int i = 0; i < lives_; i++) {
+    const float life_x = window_w - (i + 1) * LIFE_ICON - 8;
+    TextureManager::instance().draw("life", life_x, y, HUD_ICON_SIZE,
+                                    HUD_ICON_SIZE, renderer_);
+  }
+}
+
+void Game::draw_centered(const std::string& tag, int w, int h) {
+  constexpr float banner_w = 512, banner_h = 128;
+  TextureManager::instance().draw(tag, (w - banner_w) / 2.0f,
+                                  (h - banner_h) / 2.0f, banner_w, banner_h,
+                                  renderer_);
 }
 
 void Game::clean() {

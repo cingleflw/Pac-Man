@@ -21,7 +21,8 @@
 #include "player.hpp"
 #include "scare_trigger.hpp"
 
-constexpr int START_LIVES = 3;  ///< Жизней в начале игры.
+constexpr int START_LIVES = 3;     ///< Жизней в начале игры.
+constexpr Uint64 READY_MS = 2000;  ///< Длительность READY в миллисекундах.
 
 /**
  * @brief Режим игры.
@@ -115,7 +116,11 @@ class Game : public ScareTrigger, public GhostController {
   void clean();
 
   /// @brief Запускает игровой цикл, устанавливая флаг running_.
-  void start_game() { running_ = true; }
+  void start_game() {
+    running_ = true;
+    state_ = GameState::Ready;
+    ready_until_ = SDL_GetTicks() + READY_MS;
+  }
 
   /// @brief Останавливает игровой цикл, сбрасывая флаг running_.
   void stop_game() { running_ = false; }
@@ -152,7 +157,7 @@ class Game : public ScareTrigger, public GhostController {
 
   /// @brief Съедобный режим. @note Длительностью испуга в текущей версии
   /// управляет синхронизация с энерджайзером в update_ghost_mode(); ни один
-  /// буст этот метод не вызывает: он реализован лишь ради интерфейса.
+  /// буст этот метод не вызывает — он реализован лишь ради интерфейса.
   void frighten(Uint64 duration_ms) override {
     (void)duration_ms;
     for (Ghost* g : ghosts_) g->frighten();
@@ -169,6 +174,11 @@ class Game : public ScareTrigger, public GhostController {
   }
 
   void lose_life();
+
+  void start_new_game();
+  void respawn_entities();
+
+  void render_number(int value, float x, float y, int w, int h);
 
  private:
   /// @brief Создаёт (или пересоздаёт) призраков из спаунов карты.
@@ -228,4 +238,7 @@ class Game : public ScareTrigger, public GhostController {
 
   int lives_ = START_LIVES;
   Uint64 ready_until_ = 0;
+
+  void render_hud();
+  void draw_centered(const std::string& tag, int w, int h);
 };
