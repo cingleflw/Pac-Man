@@ -341,8 +341,11 @@ void Game::check_ghost_collisions() {
         px < g->get_x() + g->get_w() - PAD && px + pw - PAD > g->get_x() &&
         py < g->get_y() + g->get_h() - PAD && py + ph - PAD > g->get_y();
     if (!hit) continue;
+
     if (g->is_frightened()) {
       player_.add_score(GHOST_EAT_SCORE);
+      g->get_eaten();
+    } else if (player_.consume_shield()) {
       g->get_eaten();
     } else {
       lose_life();
