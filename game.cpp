@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "input_handler.hpp"
+#include "sound_manager.hpp"
 #include "texture_manager.hpp"
 
 constexpr int HUD_HEIGHT = 64;  ///< Высота верхней панели в пикселях.
@@ -176,6 +177,30 @@ bool Game::init(std::string title, int w, int h, int flags) {
   phase_start_ms_ = SDL_GetTicks();
   for (Ghost* g : ghosts_) g->set_mode(kSchedule[0].mode);
 
+  // --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ЗВУКОВОЙ СИСТЕМЫ ---
+  if (SoundManager::instance().init()) {
+    SoundManager::instance().load_wav(SoundType::Start,
+                                      "assets/sounds/start.wav");
+    SoundManager::instance().load_wav(SoundType::EatDot,
+                                      "assets/sounds/eat_dot.wav");
+    SoundManager::instance().load_wav(SoundType::EatGhost,
+                                      "assets/sounds/eat_ghost.wav");
+    SoundManager::instance().load_wav(SoundType::Death,
+                                      "assets/sounds/death.wav");
+    SoundManager::instance().load_wav(SoundType::Victory,
+                                      "assets/sounds/victory.wav");
+    SoundManager::instance().load_wav(SoundType::Scare1, 
+                                      "assets/sounds/scare_1.wav");
+    SoundManager::instance().load_wav(SoundType::Scare2,
+                                      "assets/sounds/scare_2.wav");
+    SoundManager::instance().load_wav(SoundType::Scare3,
+                                      "assets/sounds/scare_3.wav");
+    SoundManager::instance().load_wav(SoundType::Scare4,
+                                      "assets/sounds/scare_4.wav");                                 
+
+    SoundManager::instance().play(SoundType::Start);
+  }
+
   return true;
 }
 
@@ -300,6 +325,7 @@ void Game::update() {
 
       if (map_.is_cleared()) {
         state_ = GameState::Win;
+        SoundManager::instance().play(SoundType::Victory);  // ЗВУК ПОБЕДЫ
       }
       break;
 
@@ -371,6 +397,8 @@ void Game::check_ghost_collisions() {
     if (g->is_frightened()) {
       player_.add_score(GHOST_EAT_SCORE);
       g->get_eaten();
+      SoundManager::instance().play(
+          SoundType::EatGhost);  // ЗВУК СЪЕДЕНИЯ ПРИЗРАКА
     } else if (player_.consume_shield()) {
       g->get_eaten();
     } else {
@@ -415,6 +443,15 @@ void Game::request_scare(const std::string& texture_tag, Uint64 duration) {
   if (now - last_scare_end_time_ < SCARE_COOLDOWN) {
     return;  // Кулдаун.
   }
+      // Выбор случайного звука для скримера.
+    std::vector<SoundType> scare_sounds = {
+        SoundType::Scare1,
+        SoundType::Scare2,
+        SoundType::Scare3,
+        SoundType::Scare4,
+    };
+    int random_index = rand() % scare_sounds.size();
+    SoundManager::instance().play(scare_sounds[random_index]);
 
   scare_tag_ = texture_tag;
   scare_start_time_ = now;
@@ -488,6 +525,7 @@ void Game::handle_events() {
 }
 
 void Game::lose_life() {
+  SoundManager::instance().play(SoundType::Death);  // ЗВУК СМЕРТИ
   if (--lives_ <= 0) {
     state_ = GameState::Dead;
     return;
@@ -558,5 +596,6 @@ void Game::clean() {
   TextureManager::instance().clean();  // Текстуры до renderer'а.
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
+  SoundManager::instance().clean();  // ОЧИСТКА ЗВУКА
   SDL_Quit();
 }
