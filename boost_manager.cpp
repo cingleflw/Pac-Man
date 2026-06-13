@@ -93,32 +93,68 @@ void BoostManager::render(SDL_Renderer* renderer) {
 
 void BoostManager::apply_effect(BoostType type) {
   switch (type) {
-    case BoostType::Grape:
+    case BoostType::Grape: {
       player_.apply_speed_boost(GRAPE_SPEED_MULTIPLIER, GRAPE_DURATION);
+      std::uniform_int_distribution<int> poison1(1, APPLE_POISON_DENOM);
+      if (poison1(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
-    case BoostType::Bell:
+    case BoostType::Bell: {
       if (ghosts_) ghosts_->freeze(BELL_FREEZE_DURATION);
+      std::uniform_int_distribution<int> poison2(1, APPLE_POISON_DENOM);
+      if (poison2(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
-    case BoostType::Potion:
+    case BoostType::Potion: {
       if (ghosts_) ghosts_->confuse(POTION_CONFUSE_DURATION);
+      std::uniform_int_distribution<int> poison3(1, APPLE_POISON_DENOM);
+      if (poison3(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
-    case BoostType::Key:
+    case BoostType::Key: {
       map_.open_ghost_door();
+      std::uniform_int_distribution<int> poison4(1, APPLE_POISON_DENOM);
+      if (poison4(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
-    case BoostType::GummyBear:
+    case BoostType::GummyBear: {
       player_.give_shield();
+      std::uniform_int_distribution<int> poison5(1, APPLE_POISON_DENOM);
+      if (poison5(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
-    case BoostType::Wand:
+    case BoostType::Wand: {
       if (ghosts_) ghosts_->banish_all();
+      std::uniform_int_distribution<int> poison6(1, APPLE_POISON_DENOM);
+      if (poison6(rng_) == 1 && scare_) {
+        std::uniform_int_distribution<int> scare_dist(0, SCARE_TAG_COUNT - 1);
+        scare_->request_scare(SCARE_TAGS[scare_dist(rng_)], SCARE_DURATION);
+      }
       break;
+    }
 
     case BoostType::SurpriseBox: {
-      const int weights[] = {20, 15, 15, 10, 15, 10, 8, 7};
+      const int weights[] = {20, 15, 15, 10, 15, 10, 8, 150};
       std::discrete_distribution<int> dist(std::begin(weights),
                                            std::end(weights));
       const int roll = dist(rng_);

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "sound_manager.hpp"
 #include "texture_manager.hpp"
 
 constexpr int DOT_SCORE = 10;        ///< Очков за точку.
@@ -315,10 +316,15 @@ void GameMap::eating_dot(int col, int row, Player& player) {
   if (get_tile(col, row) == TileType::Dot) {
     set_tile(col, row, TileType::Empty);
     player.add_score(DOT_SCORE);
+
+    SoundManager::instance().play(SoundType::EatDot);
+
   } else if (get_tile(col, row) == TileType::Energizer) {
     set_tile(col, row, TileType::Empty);
     player.add_score(ENERGIZER_SCORE);
     player.activate_energizer();
+
+    SoundManager::instance().play(SoundType::EatDot);
   }
 }
 
